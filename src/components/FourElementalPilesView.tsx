@@ -441,83 +441,126 @@ export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
             <div className="lg:col-span-8 bg-[#050509]/90 border border-[#c5a059]/30 rounded-xl p-6 space-y-6 shadow-2xl overflow-hidden">
               {/* CARD DECK VISUAL SLICING ARENA (3D SIDE PROFILE PERSPECTIVE) */}
               <div
-                className="relative py-8 px-4 flex flex-col items-center justify-center select-none overflow-hidden bg-black/40 rounded-xl border border-white/5"
+                className="relative py-8 px-4 flex flex-col items-center justify-center select-none overflow-hidden bg-black/50 rounded-xl border border-white/10"
                 style={{ perspective: "1200px", perspectiveOrigin: "50% 35%" }}
               >
                 {/* 3D Stack Stage Container */}
                 <div
-                  className="relative flex items-center justify-center h-68 sm:h-76 w-full max-w-xs my-2 transition-transform duration-500"
+                  className="relative flex items-center justify-center h-72 sm:h-80 w-full max-w-xs my-2 transition-transform duration-500"
                   style={{
                     transformStyle: "preserve-3d",
-                    transform: "rotateX(46deg) rotateZ(-12deg)"
+                    transform: "rotateX(44deg) rotateZ(-12deg)"
                   }}
                 >
-                  <div className="absolute w-44 sm:w-52 h-64 sm:h-72 bg-black/90 rounded-xl blur-xl translate-y-6" />
+                  <div className="absolute w-44 sm:w-52 h-64 sm:h-72 bg-black/95 rounded-xl blur-2xl translate-y-8" />
+
+                  {/* Laser Slice Beam Line */}
+                  <AnimatePresence>
+                    {isSlicingAnimation && (
+                      <motion.div
+                        initial={{ opacity: 0, scaleX: 0 }}
+                        animate={{ opacity: 1, scaleX: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#c5a059] to-transparent shadow-[0_0_20px_#c5a059] z-50 pointer-events-none"
+                        style={{ top: `${100 - pileAPercent}%` }}
+                      />
+                    )}
+                  </AnimatePresence>
 
                   {/* BOTTOM DECK STACK (Remaining Stack B) */}
                   <motion.div
                     animate={{
-                      x: isSlicingAnimation ? 65 : 0,
-                      y: isSlicingAnimation ? 10 : 0
+                      x: isSlicingAnimation ? 70 : 0,
+                      y: isSlicingAnimation ? 12 : 0,
+                      rotateZ: isSlicingAnimation ? 4 : 0
                     }}
                     transition={{ type: "spring", stiffness: 220, damping: 22 }}
-                    className="relative w-44 sm:w-52 h-64 sm:h-72 rounded-xl border border-[#c5a059]/70 bg-[#0e0e11] overflow-hidden shadow-2xl"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      boxShadow: `0px ${Math.round(pileBPercent * 0.25)}px 0px rgba(10, 10, 14, 0.95), 0px ${Math.round(pileBPercent * 0.25) + 1}px 0px rgba(197, 160, 89, 0.4)`
-                    }}
+                    className="relative w-44 sm:w-52 h-64 sm:h-72 rounded-xl border border-[#c5a059]/70 bg-[#0e0e11] shadow-2xl"
+                    style={{ transformStyle: "preserve-3d" }}
                   >
+                    {/* Layered Card Edge Rims for Realistic 78-Card Deck Thickness */}
+                    {Array.from({ length: Math.max(3, Math.min(12, Math.round((stackBCount / 78) * 12))) }).map((_, idx) => (
+                      <div
+                        key={`bottom-rim-${idx}`}
+                        className="absolute inset-0 rounded-xl border-b border-r border-[#c5a059]/40 bg-[#0c0c10] pointer-events-none"
+                        style={{
+                          transform: `translate3d(0px, ${(idx + 1) * 2.2}px, -${(idx + 1) * 2.2}px)`,
+                          background: 'linear-gradient(135deg, #14121a 0%, #070709 100%)',
+                        }}
+                      />
+                    ))}
+
                     <img
                       src={THOTH_CARD_BACK_IMAGE}
                       alt="Bottom Deck Stack"
-                      className="w-full h-full object-cover opacity-95"
+                      className="w-full h-full object-cover opacity-95 rounded-xl relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-[#0a0a0e]/60 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute bottom-3 right-3 text-[10px] font-mono text-[#c5a059] font-bold bg-black/85 px-2.5 py-1 rounded-md border border-white/10 shadow z-20">
-                      {cutStage === 1
-                        ? "Water & Earth"
-                        : cutStage === 2
-                          ? "Air Book"
-                          : "Earth Book"}{" "}
-                      ({pileBPercent}%)
+                    <div className="absolute inset-0 bg-gradient-to-tr from-[#0a0a0e]/70 via-transparent to-transparent pointer-events-none z-10" />
+                    
+                    <div className="absolute bottom-3 right-3 text-[10px] font-mono text-[#c5a059] font-bold bg-black/90 px-3 py-1 rounded-md border border-[#c5a059]/40 shadow-xl z-20 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#c5a059] animate-pulse" />
+                      <span>
+                        {cutStage === 1
+                          ? "Water & Earth"
+                          : cutStage === 2
+                            ? "Air Book"
+                            : "Earth Book"}
+                      </span>
+                      <span className="text-white/60">({stackBCount} Cards)</span>
                     </div>
                   </motion.div>
 
                   {/* TOP DECK STACK (Lifting Cut Stack A) */}
                   <motion.div
                     animate={{
-                      x: isSlicingAnimation ? -85 : 0,
-                      y: isSlicingAnimation ? -30 : 0,
-                      z: isSlicingAnimation ? 80 : Math.round(pileBPercent * 0.25) + 4,
-                      rotateX: isSlicingAnimation ? -10 : 0,
-                      rotateY: isSlicingAnimation ? -15 : 0
+                      x: isSlicingAnimation ? -90 : 0,
+                      y: isSlicingAnimation ? -35 : 0,
+                      z: isSlicingAnimation ? 90 : Math.round((stackBCount / 78) * 28) + 6,
+                      rotateX: isSlicingAnimation ? -12 : 0,
+                      rotateY: isSlicingAnimation ? -16 : 0
                     }}
                     transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="absolute w-44 sm:w-52 h-64 sm:h-72 rounded-xl border border-[#c5a059]/90 bg-[#0e0e11] overflow-hidden shadow-2xl z-30"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      boxShadow: `0px ${Math.round(pileAPercent * 0.25)}px 0px rgba(10, 10, 14, 0.95), 0px ${Math.round(pileAPercent * 0.25) + 1}px 0px rgba(197, 160, 89, 0.5)`
-                    }}
+                    className="absolute w-44 sm:w-52 h-64 sm:h-72 rounded-xl border border-[#c5a059]/90 bg-[#0e0e11] shadow-2xl z-30"
+                    style={{ transformStyle: "preserve-3d" }}
                   >
+                    {/* Layered Card Edge Rims for Top Cut Stack */}
+                    {Array.from({ length: Math.max(3, Math.min(12, Math.round((stackACount / 78) * 12))) }).map((_, idx) => (
+                      <div
+                        key={`top-rim-${idx}`}
+                        className="absolute inset-0 rounded-xl border-b border-r border-[#c5a059]/50 bg-[#0e0e12] pointer-events-none"
+                        style={{
+                          transform: `translate3d(0px, ${(idx + 1) * 2.2}px, -${(idx + 1) * 2.2}px)`,
+                          background: 'linear-gradient(135deg, #181622 0%, #09090d 100%)',
+                        }}
+                      />
+                    ))}
+
                     <img
                       src={THOTH_CARD_BACK_IMAGE}
                       alt="Top Deck Stack"
-                      className="w-full h-full object-cover opacity-95"
+                      className="w-full h-full object-cover opacity-95 rounded-xl relative z-10"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-tl from-[#0a0a0e]/60 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute top-3 left-3 text-[10px] font-mono text-amber-300 font-bold bg-black/85 px-2.5 py-1 rounded-md border border-amber-400/40 shadow z-20">
-                      {cutStage === 1 ? "Fire & Air" : cutStage === 2 ? "Fire Book" : "Water Book"}{" "}
-                      ({pileAPercent}%)
+                    <div className="absolute inset-0 bg-gradient-to-tl from-[#0a0a0e]/70 via-transparent to-transparent pointer-events-none z-10" />
+                    
+                    <div className="absolute top-3 left-3 text-[10px] font-mono text-amber-300 font-bold bg-black/90 px-3 py-1 rounded-md border border-amber-400/50 shadow-xl z-20 flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>{cutStage === 1 ? "Fire & Air" : cutStage === 2 ? "Fire Book" : "Water Book"}</span>
+                      <span className="text-white/60">({stackACount} Cards)</span>
                     </div>
                   </motion.div>
                 </div>
 
-                {/* Live Cut Ratio Readout */}
-                <div className="mt-4 flex items-center gap-4 text-xs sm:text-sm font-mono text-stone-300 relative z-20">
-                  <span>
-                    Cut Ratio: <strong className="text-[#c5a059]">{pileAPercent}%</strong> /{" "}
-                    <strong className="text-[#c5a059]">{pileBPercent}%</strong>
+                {/* Live Cut Ratio & Card Count Readout */}
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm font-mono text-stone-300 relative z-20">
+                  <span className="bg-black/60 px-3 py-1 rounded-md border border-white/10">
+                    Stack A: <strong className="text-amber-400">{stackACount} Cards ({pileAPercent}%)</strong>
                   </span>
+                  <span className="text-stone-600">•</span>
+                  <span className="bg-black/60 px-3 py-1 rounded-md border border-white/10">
+                    Stack B: <strong className="text-[#c5a059]">{stackBCount} Cards ({pileBPercent}%)</strong>
+                  </span>
+                </div>
+              </div>
                   <span className="text-stone-600">•</span>
                   <span>
                     Accuracy: <strong className="text-amber-400">{accuracyScore}%</strong>

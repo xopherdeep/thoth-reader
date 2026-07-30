@@ -935,10 +935,10 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.3 }}
-            className="bg-[#0e0e11] border border-white/10 rounded-sm p-6 sm:p-8 shadow-2xl space-y-6"
+            className="relative bg-[#0a0a0e]/95 backdrop-blur-2xl border border-[#c5a059]/20 rounded-2xl p-7 sm:p-10 shadow-[0_16px_60px_rgba(0,0,0,0.9),_0_0_0_1px_rgba(197,160,89,0.08)] overflow-hidden space-y-6"
           >
             <div>
-              <span className="text-xs font-mono text-[#c5a059] uppercase tracking-widest block mb-1">
+              <span className="text-xs font-mono text-[#c5a059]/80 uppercase tracking-[0.2em] block mb-1">
                 Step {wizardStep} of {totalSteps} • Review Spread & Configure AI Oracle Persona
               </span>
               <h2 className="atu-font text-2xl font-bold text-[#c5a059] tracking-wide">
@@ -952,7 +952,7 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 Pulled Cards in Spread Sequence ({activePulledCards.length} Cards)
               </span>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 justify-items-center bg-[#050505] p-4 rounded-sm border border-white/10">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 justify-items-center bg-white/[0.03] p-4 rounded-2xl border border-white/10">
                 {activePulledCards.map((card, idx) => (
                   <TarotCardView
                     key={`${card.id}-${idx}`}
@@ -978,13 +978,13 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 {/* Style 1: Crowleyan Liber AL */}
                 <div
                   onClick={() => setAiStyle('crowleyan')}
-                  className={`p-4 rounded-sm border cursor-pointer transition flex items-start gap-3 ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition flex items-start gap-3 ${
                     aiStyle === 'crowleyan'
-                      ? 'bg-[#121218] border-[#c5a059] ring-1 ring-[#c5a059]/50 shadow-lg'
-                      : 'bg-[#050505] border-white/10 hover:border-white/20'
+                      ? 'bg-[#c5a059]/10 border-[#c5a059]/70 ring-1 ring-[#c5a059]/30 shadow-[0_0_24px_rgba(197,160,89,0.15)]'
+                      : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05]'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-sm bg-[#0e0e11] border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
                     <Feather className="w-4 h-4" />
                   </div>
                   <div>
@@ -1000,13 +1000,13 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 {/* Style 2: Hermetic Alchemical */}
                 <div
                   onClick={() => setAiStyle('alchemical')}
-                  className={`p-4 rounded-sm border cursor-pointer transition flex items-start gap-3 ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition flex items-start gap-3 ${
                     aiStyle === 'alchemical'
-                      ? 'bg-[#121218] border-[#c5a059] ring-1 ring-[#c5a059]/50 shadow-lg'
-                      : 'bg-[#050505] border-white/10 hover:border-white/20'
+                      ? 'bg-[#c5a059]/10 border-[#c5a059]/70 ring-1 ring-[#c5a059]/30 shadow-[0_0_24px_rgba(197,160,89,0.15)]'
+                      : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05]'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-sm bg-[#0e0e11] border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
                     <Flame className="w-4 h-4" />
                   </div>
                   <div>
@@ -1022,13 +1022,13 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 {/* Style 3: Orphic Hymnic */}
                 <div
                   onClick={() => setAiStyle('orphic')}
-                  className={`p-4 rounded-sm border cursor-pointer transition flex items-start gap-3 ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition flex items-start gap-3 ${
                     aiStyle === 'orphic'
-                      ? 'bg-[#121218] border-[#c5a059] ring-1 ring-[#c5a059]/50 shadow-lg'
-                      : 'bg-[#050505] border-white/10 hover:border-white/20'
+                      ? 'bg-[#c5a059]/10 border-[#c5a059]/70 ring-1 ring-[#c5a059]/30 shadow-[0_0_24px_rgba(197,160,89,0.15)]'
+                      : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05]'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-sm bg-[#0e0e11] border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
@@ -1044,13 +1044,13 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 {/* Style 4: Enochian Angelic */}
                 <div
                   onClick={() => setAiStyle('enochian')}
-                  className={`p-4 rounded-sm border cursor-pointer transition flex items-start gap-3 ${
+                  className={`p-4 rounded-2xl border cursor-pointer transition flex items-start gap-3 ${
                     aiStyle === 'enochian'
-                      ? 'bg-[#121218] border-[#c5a059] ring-1 ring-[#c5a059]/50 shadow-lg'
-                      : 'bg-[#050505] border-white/10 hover:border-white/20'
+                      ? 'bg-[#c5a059]/10 border-[#c5a059]/70 ring-1 ring-[#c5a059]/30 shadow-[0_0_24px_rgba(197,160,89,0.15)]'
+                      : 'bg-white/[0.03] border-white/10 hover:border-white/20 hover:bg-white/[0.05]'
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-sm bg-[#0e0e11] border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
+                  <div className="w-8 h-8 rounded-xl bg-[#c5a059]/10 border border-[#c5a059]/40 flex items-center justify-center text-[#c5a059] shrink-0">
                     <Compass className="w-4 h-4" />
                   </div>
                   <div>
@@ -1075,7 +1075,7 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 value={deckNote}
                 onChange={(e) => setDeckNote(e.target.value)}
                 placeholder="e.g. Performed during Waxing Crescent Moon in Scorpio..."
-                className="w-full px-3 py-2.5 bg-[#050505] border border-white/15 focus:border-[#c5a059] rounded-sm text-stone-200 text-xs font-mono outline-none"
+                className="w-full px-3 py-2.5 bg-white/[0.04] border border-white/15 focus:border-[#c5a059] rounded-xl text-stone-200 text-xs font-mono outline-none"
               />
             </div>
 
@@ -1083,14 +1083,14 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
             <div className="pt-4 border-t border-white/10 flex items-center justify-between">
               <button
                 onClick={() => goToStep(spreadMode === 'auto' ? 5 : 3)}
-                className="px-4 py-2.5 bg-[#050505] hover:bg-black text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-sm flex items-center gap-1.5 transition"
+                className="px-4 py-2.5 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition"
               >
                 <ArrowLeft className="w-4 h-4" /> Back to {spreadMode === 'auto' ? 'Pick Significator' : 'Card Selection'}
               </button>
 
               <button
                 onClick={executeAISynthesis}
-                className="px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-sm shadow-2xl flex items-center gap-2 transition transform active:scale-95"
+                className="px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-xl shadow-[0_0_32px_rgba(197,160,89,0.4)] flex items-center gap-2 transition transform active:scale-95"
               >
                 <Sparkles className="w-4 h-4 fill-current" />
                 <span>Synthesize Thoth Oracle AI Reading</span>
@@ -1107,7 +1107,7 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.3 }}
-            className="bg-[#0e0e11] border border-[#c5a059]/60 rounded-sm p-8 sm:p-12 shadow-2xl text-center space-y-8 relative overflow-hidden"
+            className="relative bg-[#0a0a0e]/95 backdrop-blur-2xl border border-[#c5a059]/25 rounded-2xl p-8 sm:p-12 shadow-[0_16px_60px_rgba(0,0,0,0.9)] text-center space-y-8 overflow-hidden"
           >
             {/* Glowing Rosicrucian Sigil Pulse */}
             <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
@@ -1131,7 +1131,7 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
             </div>
 
             {/* ANIMATED PROCESSING PHASES CHECKLIST */}
-            <div className="max-w-md mx-auto space-y-2.5 text-left bg-[#050505] p-5 rounded-sm border border-white/10 font-mono text-xs">
+            <div className="max-w-md mx-auto space-y-2.5 text-left bg-white/[0.04] p-5 rounded-2xl border border-white/10 font-mono text-xs">
               <div className={`flex items-center gap-3 transition ${aiProcessingPhase >= 1 ? 'text-[#c5a059]' : 'text-stone-600'}`}>
                 {aiProcessingPhase > 1 ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -1190,7 +1190,7 @@ export const ReadingStudio: React.FC<ReadingStudioProps> = ({ onReadingCreated }
                 <div><strong>Synthesis Error:</strong> {aiError}</div>
                 <button
                   onClick={() => goToStep(spreadMode === 'auto' ? 6 : 4)}
-                  className="px-4 py-2 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-sm text-xs font-mono uppercase"
+                  className="px-4 py-2 bg-rose-900/50 hover:bg-rose-800/60 text-white font-bold rounded-xl text-xs font-mono uppercase border border-rose-500/40"
                 >
                   Return to Review & Retry
                 </button>

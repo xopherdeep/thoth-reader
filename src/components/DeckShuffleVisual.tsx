@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThothCard } from '../types';
 import { THOTH_CARD_BACK_IMAGE } from '../utils/cardImageUrls';
@@ -25,89 +26,23 @@ interface DeckShuffleVisualProps {
 type ShuffleStyle = 'riffle' | 'overhand' | 'wash';
 type ShufflePhase = 'idle' | 'split' | 'riffle' | 'bridge' | 'waterfall' | 'square';
 
-interface BentCardBackProps {
-  bendAmount: number; // -1 to 1 (-1 = convex bridge arch, +1 = concave thumb lift)
-}
-
 const CARD_COUNT = 32;
-const SLICE_COUNT = 8;
-const SLICE_INDICES = Array.from({ length: SLICE_COUNT }, (_, i) => i);
+const CARD_WIDTH = 2.2;
+const CARD_HEIGHT = 3.4;
+const SEGMENTS = 24;
 
-const BentCardBack: React.FC<BentCardBackProps> = ({ bendAmount }) => {
-  const absBend = Math.abs(bendAmount);
-
-  if (absBend < 0.02) {
-    return (
-      <div className="w-32 h-48 sm:w-36 sm:h-56 rounded-sm bg-[#0e0e11] border border-[#c5a059]/70 shadow-xl overflow-hidden select-none relative transition-all duration-200">
-        <img
-          src={THOTH_CARD_BACK_IMAGE}
-          alt="Thoth Card Back"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover rounded-xs"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-        <div className="absolute inset-0 border border-[#c5a059]/30 rounded-xs pointer-events-none" />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="w-32 h-48 sm:w-36 sm:h-56 rounded-sm relative select-none shadow-xl border border-[#c5a059]/60"
-      style={{ transformStyle: 'preserve-3d' }}
-    >
-      {SLICE_INDICES.map((sliceIndex) => {
-        const progress = (sliceIndex + 0.5) / SLICE_COUNT;
-        const archSin = Math.sin(progress * Math.PI);
-        const archCos = Math.cos(progress * Math.PI);
-
-        // Convex arch: middle rises UP (+Z towards viewer), slice edges tilt downward
-        const direction = bendAmount >= 0 ? 1 : -1;
-        const rotateX = -archCos * bendAmount * 32;
-        const translateZ = archSin * absBend * 28 * direction;
-
-        const sliceHeightPercent = 100 / SLICE_COUNT + 0.5; // +0.5% overlap prevents slice gap seams
-        const sliceTopPercent = (sliceIndex / SLICE_COUNT) * 100;
-
-        return (
-          <div
-            key={sliceIndex}
-            className="absolute left-0 right-0 overflow-hidden bg-[#0e0e11]"
-            style={{
-              top: `${sliceTopPercent}%`,
-              height: `${sliceHeightPercent}%`,
-              transformStyle: 'preserve-3d',
-              transform: `translateZ(${translateZ}px) rotateX(${rotateX}deg)`,
-              backfaceVisibility: 'hidden',
-              willChange: 'transform',
-            }}
-          >
-            <div
-              className="absolute left-0 right-0 w-full"
-              style={{
-                top: `-${sliceIndex * 100}%`,
-                height: `${SLICE_COUNT * 100}%`,
-              }}
-            >
-              <img
-                src={THOTH_CARD_BACK_IMAGE}
-                alt="Thoth Card Back Slice"
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              <div className="absolute inset-0 border border-[#c5a059]/30 pointer-events-none" />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
+interface CardMeshRecord {
+  mesh: THREE.Mesh;
+  geometry: THREE.PlaneGeometry;
+  originalPositions: Float32Array;
+  currentX: number;
+  currentY: number;
+  currentZ: number;
+  currentRotX: number;
+  currentRotY: number;
+  currentRotZ: number;
+  currentBend: number;
+}
 
 export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
   shuffleCount,
@@ -117,6 +52,7 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
 }) => {
   const [shufflePhase, setShufflePhase] = useState<ShufflePhase>('idle');
   const [shuffleStyle, setShuffleStyle] = useState<ShuffleStyle>('riffle');
+  const [waterfallProgress, setWaterfallProgress] = useState(0);
 
   const [shuffleState, setShuffleState] = useState<{
     stack: number[];
@@ -129,6 +65,29 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
     rightPile: Array.from({ length: CARD_COUNT / 2 }, (_, i) => i + CARD_COUNT / 2),
     reversedCards: {},
   });
+
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const cardMeshesRef = useRef<CardMeshRecord[]>([]);
+  const animPhaseRef = useRef<ShufflePhase>('idle');
+  const animStyleRef = useRef<ShuffleStyle>('riffle');
+  const shuffleStateRef = useRef(shuffleState);
+  const waterfallProgressRef = useRef(0);
+
+  useEffect(() => {
+    animPhaseRef.current = shufflePhase;
+  }, [shufflePhase]);
+
+  useEffect(() => {
+    animStyleRef.current = shuffleStyle;
+  }, [shuffleStyle]);
+
+  useEffect(() => {
+    shuffleStateRef.current = shuffleState;
+  }, [shuffleState]);
+
+  useEffect(() => {
+    waterfallProgressRef.current = waterfallProgress;
+  }, [waterfallProgress]);
 
   const triggerHaptic = (pattern: number | number[] = 15) => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
@@ -149,6 +108,289 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
   const generateBridgeWaterfallHaptics = () => {
     return Array.from({ length: 16 }, () => [10, 15]).flat();
   };
+
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth || 600;
+    const height = container.clientHeight || 450;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, 6.2, 9.2);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const goldPointLight = new THREE.PointLight(0xc5a059, 2.5, 20);
+    goldPointLight.position.set(0, 5, 2);
+    scene.add(goldPointLight);
+
+    const keyLight = new THREE.DirectionalLight(0xfffaee, 1.0);
+    keyLight.position.set(4, 8, 5);
+    scene.add(keyLight);
+
+    const textureLoader = new THREE.TextureLoader();
+    const cardTexture = textureLoader.load(THOTH_CARD_BACK_IMAGE);
+    cardTexture.colorSpace = THREE.SRGBColorSpace;
+    cardTexture.minFilter = THREE.LinearFilter;
+    cardTexture.magFilter = THREE.LinearFilter;
+    cardTexture.generateMipmaps = true;
+
+    const records: CardMeshRecord[] = [];
+
+    for (let i = 0; i < CARD_COUNT; i++) {
+      const geometry = new THREE.PlaneGeometry(CARD_WIDTH, CARD_HEIGHT, SEGMENTS, SEGMENTS);
+      const originalPositions = new Float32Array(geometry.attributes.position.array);
+
+      const material = new THREE.MeshStandardMaterial({
+        map: cardTexture,
+        roughness: 0.35,
+        metalness: 0.15,
+        side: THREE.DoubleSide,
+        shadowSide: THREE.DoubleSide,
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
+      const initialZ = i * 0.04;
+      mesh.position.set(0, 0, initialZ);
+      scene.add(mesh);
+
+      records.push({
+        mesh,
+        geometry,
+        originalPositions,
+        currentX: 0,
+        currentY: 0,
+        currentZ: initialZ,
+        currentRotX: 0,
+        currentRotY: 0,
+        currentRotZ: 0,
+        currentBend: 0,
+      });
+    }
+
+    cardMeshesRef.current = records;
+
+    let animFrameId: number;
+
+    const animate = () => {
+      animFrameId = requestAnimationFrame(animate);
+
+      const phase = animPhaseRef.current;
+      const style = animStyleRef.current;
+      const state = shuffleStateRef.current;
+      const progress = waterfallProgressRef.current;
+
+      records.forEach((record, id) => {
+        const isLeft = state.leftPile.includes(id);
+        const targetIndex = state.stack.indexOf(id);
+        const pileIndex = isLeft
+          ? state.leftPile.indexOf(id)
+          : state.rightPile.indexOf(id);
+
+        const isReversed = !!state.reversedCards[id];
+        const reversalAngle = isReversed ? Math.PI : 0;
+
+        let targetX = 0;
+        let targetY = 0;
+        let targetZ = targetIndex * 0.04;
+        let targetRotX = 0;
+        let targetRotY = 0;
+        let targetRotZ = reversalAngle;
+        let targetBend = 0;
+
+        if (phase === 'split') {
+          if (style === 'riffle') {
+            targetX = isLeft ? -2.6 : 2.6;
+            targetY = 0;
+            targetZ = pileIndex * 0.04 + 0.15;
+            targetRotX = 0.2;
+            targetRotY = isLeft ? -0.22 : 0.22;
+            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetBend = 0;
+          } else if (style === 'overhand') {
+            targetX = isLeft ? -1.8 : 1.8;
+            targetY = isLeft ? -0.3 : 0.3;
+            targetZ = pileIndex * 0.05 + 0.15;
+            targetRotY = isLeft ? -0.25 : 0.25;
+            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetBend = 0;
+          } else {
+            const washAngle = (id / CARD_COUNT) * Math.PI * 2;
+            targetX = Math.cos(washAngle) * 2.4;
+            targetY = Math.sin(washAngle) * 1.0;
+            targetZ = id * 0.03;
+            targetRotZ = (id * 0.26) % (Math.PI * 2);
+            targetBend = 0;
+          }
+        } else if (phase === 'riffle') {
+          if (style === 'riffle') {
+            targetX = (isLeft ? -1 : 1) * (1.25 + (targetIndex % 3) * 0.03);
+            targetY = (targetIndex % 2 === 0 ? -0.06 : 0.06);
+            targetZ = targetIndex * 0.045;
+            targetRotX = 0.15;
+            targetRotY = (isLeft ? -1 : 1) * Math.max(0, 0.2 - targetIndex * 0.006);
+            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetBend = 0;
+          } else if (style === 'overhand') {
+            targetX = isLeft ? -0.8 : 0.8;
+            targetY = -targetIndex * 0.02;
+            targetZ = targetIndex * 0.04;
+            targetRotY = isLeft ? -0.08 : 0.08;
+            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetBend = 0;
+          } else {
+            targetX = Math.sin(id) * 0.6;
+            targetY = Math.cos(id) * 0.35;
+            targetZ = targetIndex * 0.04;
+            targetRotZ = Math.cos(id) * 0.2;
+            targetBend = 0;
+          }
+        } else if (phase === 'bridge') {
+          if (style === 'riffle') {
+            const archNorm = Math.sin((targetIndex / (CARD_COUNT - 1)) * Math.PI);
+            const archZ = archNorm * 1.6;
+            targetX = (isLeft ? -1 : 1) * Math.max(0.12, 0.35 - (CARD_COUNT - 1 - targetIndex) * 0.008);
+            targetY = 0;
+            targetZ = 0.8 + archZ + targetIndex * 0.025;
+            targetRotX = archNorm * -0.45;
+            targetRotY = (isLeft ? -1 : 1) * (0.15 - targetIndex * 0.004);
+            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetBend = 0.95;
+          } else {
+            targetX = 0;
+            targetY = 0;
+            targetZ = targetIndex * 0.04;
+            targetBend = 0;
+          }
+        } else if (phase === 'waterfall') {
+          if (style === 'riffle') {
+            const releasedThreshold = progress * CARD_COUNT;
+            const hasReleased = targetIndex <= releasedThreshold;
+
+            if (hasReleased) {
+              targetX = 0;
+              targetY = 0;
+              targetZ = targetIndex * 0.04;
+              targetRotX = 0;
+              targetRotY = 0;
+              targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+              targetBend = 0;
+            } else {
+              const archNorm = Math.sin((targetIndex / (CARD_COUNT - 1)) * Math.PI);
+              const archZ = archNorm * 1.6;
+              targetX = (isLeft ? -1 : 1) * Math.max(0.12, 0.35 - (CARD_COUNT - 1 - targetIndex) * 0.008);
+              targetY = 0;
+              targetZ = 0.8 + archZ + targetIndex * 0.025;
+              targetRotX = archNorm * -0.45;
+              targetRotY = (isLeft ? -1 : 1) * (0.15 - targetIndex * 0.004);
+              targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+              targetBend = 0.95;
+            }
+          } else {
+            targetX = 0;
+            targetY = 0;
+            targetZ = targetIndex * 0.04;
+            targetBend = 0;
+          }
+        } else if (phase === 'square' || phase === 'idle') {
+          targetX = 0;
+          targetY = 0;
+          targetZ = targetIndex * 0.04;
+          targetRotX = 0;
+          targetRotY = 0;
+          targetRotZ = reversalAngle;
+          targetBend = 0;
+        }
+
+        record.currentX += (targetX - record.currentX) * 0.14;
+        record.currentY += (targetY - record.currentY) * 0.14;
+        record.currentZ += (targetZ - record.currentZ) * 0.14;
+        record.currentRotX += (targetRotX - record.currentRotX) * 0.14;
+        record.currentRotY += (targetRotY - record.currentRotY) * 0.14;
+        record.currentRotZ += (targetRotZ - record.currentRotZ) * 0.14;
+        record.currentBend += (targetBend - record.currentBend) * 0.14;
+
+        record.mesh.position.set(record.currentX, record.currentY, record.currentZ);
+        record.mesh.rotation.set(record.currentRotX, record.currentRotY, record.currentRotZ);
+
+        const posAttr = record.geometry.attributes.position;
+        const origPos = record.originalPositions;
+        const absBend = Math.abs(record.currentBend);
+
+        if (absBend > 0.01) {
+          for (let v = 0; v < posAttr.count; v++) {
+            const origY = origPos[v * 3 + 1];
+            const normY = (origY + CARD_HEIGHT / 2) / CARD_HEIGHT;
+            const archSin = Math.sin(normY * Math.PI);
+            const archCos = Math.cos(normY * Math.PI);
+
+            const bendZ = archSin * record.currentBend * 0.75;
+            const bendY = -archCos * record.currentBend * 0.35;
+
+            posAttr.setZ(v, origPos[v * 3 + 2] + bendZ);
+            posAttr.setY(v, origY + bendY);
+          }
+          posAttr.needsUpdate = true;
+          record.geometry.computeVertexNormals();
+        } else {
+          for (let v = 0; v < posAttr.count; v++) {
+            posAttr.setZ(v, origPos[v * 3 + 2]);
+            posAttr.setY(v, origPos[v * 3 + 1]);
+          }
+          posAttr.needsUpdate = true;
+          record.geometry.computeVertexNormals();
+        }
+      });
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    const handleResize = () => {
+      if (!container) return;
+      const w = container.clientWidth || 600;
+      const h = container.clientHeight || 450;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      cancelAnimationFrame(animFrameId);
+      records.forEach((r) => {
+        r.geometry.dispose();
+        (r.mesh.material as THREE.Material).dispose();
+      });
+      cardTexture.dispose();
+      renderer.dispose();
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+    };
+  }, []);
 
   const handleShuffleClick = (styleOverride?: ShuffleStyle) => {
     if (isAnimating) return;
@@ -197,7 +439,6 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
       nextStack = [...currentStack].sort(() => Math.random() - 0.5);
     }
 
-    // Randomize 180° tarot card reversals during shuffle
     const newReversedCards = { ...shuffleState.reversedCards };
     const flipRightPile = Math.random() > 0.45;
     if (flipRightPile) {
@@ -218,12 +459,11 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
       rightPile,
       reversedCards: newReversedCards,
     });
+    setWaterfallProgress(0);
 
-    // Phase 1: Split (0ms - 500ms)
     triggerHaptic(activeStyle === 'riffle' ? [20, 25, 15, 30] : [35, 40, 30]);
     setShufflePhase('split');
 
-    // Phase 2: Riffle Card Interlace (500ms - 1200ms)
     setTimeout(() => {
       setShufflePhase('riffle');
       if (activeStyle === 'riffle') {
@@ -231,9 +471,8 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
       } else {
         triggerHaptic([12, 18, 12, 18, 12]);
       }
-    }, 500);
+    }, 550);
 
-    // Phase 3: Pressing Halves into 3D Bridge Arch (1200ms - 1700ms)
     setTimeout(() => {
       if (activeStyle === 'riffle') {
         setShufflePhase('bridge');
@@ -242,30 +481,33 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
         setShufflePhase('square');
         triggerHaptic([25, 35, 25]);
       }
-    }, 1200);
+    }, 1250);
 
-    // Phase 3b: Waterfall Release (1700ms - 2450ms) - Cards drop bottom-to-top underneath the arch to form pile!
     setTimeout(() => {
       if (activeStyle === 'riffle') {
         setShufflePhase('waterfall');
         triggerHaptic(generateBridgeWaterfallHaptics());
-      }
-    }, 1700);
 
-    // Phase 4: Square Deck (2450ms - 2850ms)
+        const startTime = Date.now();
+        const waterfallInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const p = Math.min(1, elapsed / 750);
+          setWaterfallProgress(p);
+          if (p >= 1) clearInterval(waterfallInterval);
+        }, 16);
+      }
+    }, 1750);
+
     setTimeout(() => {
       setShufflePhase('square');
       triggerHaptic([30, 20, 45]);
-    }, 2450);
+    }, 2650);
 
-    // Phase 5: Complete & Idle (2850ms)
     setTimeout(() => {
       triggerHaptic(25);
       setShufflePhase('idle');
-    }, 2850);
+    }, 3100);
   };
-
-  const cardIndices = Array.from({ length: CARD_COUNT }, (_, i) => i);
 
   const getPhaseDescription = () => {
     switch (shufflePhase) {
@@ -350,18 +592,14 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
         </button>
       </div>
 
-      {/* 3D Stage Viewport - Expanded dimensions & zero clipping */}
-      <div
-        className="relative h-[440px] sm:h-[500px] flex items-center justify-center my-2 select-none rounded-sm bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#14121a] via-[#09090c] to-[#030304] border border-[#c5a059]/30 p-4 shadow-2xl overflow-visible"
-        style={{ perspective: '1100px', perspectiveOrigin: '50% 38%' }}
-      >
+      <div className="relative h-[440px] sm:h-[500px] my-2 rounded-sm bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#14121a] via-[#09090c] to-[#030304] border border-[#c5a059]/30 shadow-2xl overflow-hidden">
         <AnimatePresence>
           {isAnimating && getPhaseDescription() && (
             <motion.div
               initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
-              className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-mono text-[#c5a059] bg-[#0e0e11]/95 border border-[#c5a059]/50 px-4 py-1.5 rounded-sm shadow-2xl z-50 tracking-wider uppercase font-semibold flex items-center gap-2"
+              className="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] font-mono text-[#c5a059] bg-[#0e0e11]/95 border border-[#c5a059]/50 px-4 py-1.5 rounded-sm shadow-2xl z-50 tracking-wider uppercase font-semibold flex items-center gap-2"
             >
               <Sparkles className="w-3 h-3 text-amber-400 animate-spin" />
               <span>{getPhaseDescription()}</span>
@@ -369,212 +607,9 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {(shufflePhase === 'split' || shufflePhase === 'riffle') && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute left-3 sm:left-10 top-12 text-[11px] font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1 rounded-sm shadow-xl z-40 hidden sm:block"
-              >
-                Fire & Air Books (~39 Cards)
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute right-3 sm:right-10 top-12 text-[11px] font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1 rounded-sm shadow-xl z-40 hidden sm:block"
-              >
-                Water & Earth Books (~39 Cards)
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* 3D Tabletop Stage Frame */}
-        <div
-          className="relative w-32 h-48 sm:w-36 sm:h-56 flex items-center justify-center scale-90 sm:scale-95"
-          style={{
-            transformStyle: 'preserve-3d',
-            transform: 'rotateX(34deg) rotateZ(-6deg)',
-          }}
-        >
-          {/* Tabletop Surface Shadow */}
-          <div className="absolute w-52 h-72 sm:w-64 sm:h-80 bg-black/90 rounded-full blur-2xl translate-y-12 pointer-events-none" />
-
-          {cardIndices.map((id) => {
-            const isLeft = shuffleState.leftPile.includes(id);
-            const targetIndex = shuffleState.stack.indexOf(id);
-            const pileIndex = isLeft
-              ? shuffleState.leftPile.indexOf(id)
-              : shuffleState.rightPile.indexOf(id);
-
-            // Stacking order in 3D: Ensure strict Z separation to prevent depth z-fighting
-            const stackingZ = targetIndex * 2.2;
-            const visualZIndex = 50 + targetIndex;
-
-            let targetX = 0;
-            let targetY = 0;
-            let targetZ = stackingZ;
-            let targetRotateX = 0;
-            let targetRotateY = 0;
-            let targetRotateZ = 0;
-            let targetScale = 1;
-            let bendAmount = 0;
-
-            if (shufflePhase === 'split') {
-              if (shuffleStyle === 'riffle') {
-                // Horizontal Dealer split: Turn cards 90deg so short horizontal ends face center
-                targetX = isLeft ? -120 : 120;
-                targetY = 0;
-                targetZ = pileIndex * 2.2 + 10;
-                targetRotateX = 12;
-                targetRotateY = isLeft ? -15 : 15;
-                targetRotateZ = isLeft ? 90 : -90; // Turned landscape so short horizontal ends face center!
-                bendAmount = 0; // Flat cards during split
-              } else if (shuffleStyle === 'overhand') {
-                targetX = isLeft ? -95 : 95;
-                targetY = isLeft ? -15 : 15;
-                targetZ = pileIndex * 2.5 + 10;
-                targetRotateY = isLeft ? -16 : 16;
-                targetRotateZ = isLeft ? 85 : -85;
-                bendAmount = 0;
-              } else {
-                // Wash split
-                const washAngle = (id / CARD_COUNT) * Math.PI * 2;
-                targetX = Math.cos(washAngle) * 125;
-                targetY = Math.sin(washAngle) * 55;
-                targetZ = id * 1.8;
-                targetRotateZ = ((id * 30) % 180) - 90;
-                bendAmount = 0;
-              }
-            } else if (shufflePhase === 'riffle') {
-              if (shuffleStyle === 'riffle') {
-                // Short-edge 15% tip interlace: Short horizontal ends overlap by only ~15% at center line
-                targetX = (isLeft ? -1 : 1) * (62 + (targetIndex % 3) * 1.5);
-                targetY = (targetIndex % 2 === 0 ? -3 : 3);
-                targetZ = targetIndex * 2.4;
-                targetRotateX = 10;
-                targetRotateY = (isLeft ? -1 : 1) * Math.max(0, 12 - targetIndex * 0.4);
-                targetRotateZ = isLeft ? 90 : -90; // Short ends facing center with 15% edge overlap
-                bendAmount = 0; // Flat cards during 15% tip interlace
-              } else if (shuffleStyle === 'overhand') {
-                targetX = isLeft ? -40 : 40;
-                targetY = -targetIndex * 1.2;
-                targetZ = targetIndex * 2.2;
-                targetRotateY = isLeft ? -5 : 5;
-                targetRotateZ = isLeft ? 85 : -85;
-                bendAmount = 0;
-              } else {
-                targetX = Math.sin(id) * 30;
-                targetY = Math.cos(id) * 18;
-                targetZ = targetIndex * 2.2;
-                targetRotateZ = Math.cos(id) * 10;
-                bendAmount = 0;
-              }
-            } else if (shufflePhase === 'bridge') {
-              if (shuffleStyle === 'riffle') {
-                // Casino Bridge Arch: Hands compress piles inward, arching cards UP in 3D
-                const archNormalized = Math.sin((targetIndex / (CARD_COUNT - 1)) * Math.PI);
-                const archZ = archNormalized * 85;
-                targetX = (isLeft ? -1 : 1) * Math.max(6, 18 - (CARD_COUNT - 1 - targetIndex) * 0.4);
-                targetY = 0;
-                targetZ = 40 + archZ + targetIndex * 1.5;
-                targetRotateX = archNormalized * -32;
-                targetRotateY = (isLeft ? -1 : 1) * (6 - targetIndex * 0.2);
-                targetRotateZ = isLeft ? 90 : -90;
-                targetScale = 1.04;
-                bendAmount = 0.95; // Convex bridge arch UP in mid-air
-              } else {
-                targetX = 0;
-                targetY = 0;
-                targetZ = targetIndex * 2.2;
-                bendAmount = 0;
-              }
-            } else if (shufflePhase === 'waterfall') {
-              if (shuffleStyle === 'riffle') {
-                // Waterfall Cascade Release: Bottom cards release FIRST, dropping straight down
-                // UNDERNEATH the arch into a single neat stack on the table surface!
-                targetX = 0;
-                targetY = 0;
-                targetZ = targetIndex * 2.2;
-                targetRotateX = 0;
-                targetRotateY = 0;
-                targetRotateZ = isLeft ? 90 : -90;
-                targetScale = 1.0;
-                bendAmount = 0; // Flattens as it lands on the stack underneath!
-              } else {
-                targetX = 0;
-                targetY = 0;
-                targetZ = targetIndex * 2.2;
-                bendAmount = 0;
-              }
-            } else if (shufflePhase === 'square') {
-              targetX = 0;
-              targetY = 0;
-              targetZ = targetIndex * 2.2;
-              targetRotateX = 0;
-              targetRotateY = 0;
-              targetRotateZ = 0;
-              targetScale = 1.01;
-              bendAmount = 0;
-            }
-
-            // Apply 180° reversal rotation if card was turned upside down during shuffle
-            const isCardReversed = !!shuffleState.reversedCards[id];
-            if (isCardReversed) {
-              targetRotateZ += 180;
-            }
-
-            return (
-              <motion.div
-                key={id}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                style={{
-                  zIndex: visualZIndex,
-                  transformStyle: 'preserve-3d',
-                  backfaceVisibility: 'hidden',
-                }}
-                animate={{
-                  x: targetX,
-                  y: targetY,
-                  z: targetZ,
-                  rotateX: targetRotateX,
-                  rotateY: targetRotateY,
-                  rotateZ: targetRotateZ,
-                  scale: targetScale,
-                }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 280,
-                  damping: 26,
-                  delay: isAnimating
-                    ? shufflePhase === 'waterfall'
-                      ? targetIndex * 0.016 // Bottom cards release FIRST, dropping to pile underneath!
-                      : shufflePhase === 'bridge'
-                      ? (CARD_COUNT - 1 - targetIndex) * 0.008
-                      : targetIndex * 0.012
-                    : 0,
-                }}
-              >
-                <BentCardBack bendAmount={bendAmount} />
-              </motion.div>
-            );
-          })}
-
-          {isAnimating && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 0.75, scale: 1.4 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#c5a059]/20 rounded-full blur-3xl pointer-events-none"
-            />
-          )}
-        </div>
+        <div ref={canvasContainerRef} className="w-full h-full relative" />
       </div>
 
-      {/* Footer Controls */}
       <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-3">
           <div className="bg-[#0e0e11] border border-[#c5a059]/40 px-3.5 py-2 rounded-sm flex items-center gap-2 text-xs font-mono text-[#c5a059]">
@@ -625,7 +660,3 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
     </div>
   );
 };
-
-
-
-

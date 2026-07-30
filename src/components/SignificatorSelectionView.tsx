@@ -101,7 +101,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
     selectedPile.cards.find((c) => c.id === selectedSignificatorId) || selectedPile.cards[0];
 
   return (
-    <div className="bg-[#0e0e11] border border-[#c5a059]/40 rounded-sm p-5 sm:p-7 shadow-2xl space-y-6">
+    <div className="relative bg-[#0a0a0e]/95 backdrop-blur-2xl border border-[#c5a059]/20 rounded-2xl p-5 sm:p-8 shadow-[0_16px_60px_rgba(0,0,0,0.9)] overflow-hidden space-y-6">
       {/* Header Banner with Stack Info */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
@@ -118,7 +118,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
 
         {/* Selected Book Pill & Change Button */}
         <div className="flex items-center gap-3">
-          <div className={`px-3.5 py-2 rounded-sm border ${badge.border} ${badge.bg} flex items-center gap-2.5 shadow-lg`}>
+          <div className={`px-3.5 py-2 rounded-xl border ${badge.border} ${badge.bg} flex items-center gap-2.5 shadow-lg`}>
             {badge.icon}
             <div>
               <span className="text-[10px] font-mono text-stone-400 block uppercase">Selected Book</span>
@@ -130,7 +130,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
 
           <button
             onClick={onChangePileStep}
-            className="px-3 py-2 bg-[#050505] hover:bg-black text-stone-300 border border-white/15 text-xs font-mono uppercase tracking-wider rounded-sm transition flex items-center gap-1.5"
+            className="px-3 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/15 text-xs font-mono uppercase tracking-wider rounded-xl transition flex items-center gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Change Book
           </button>
@@ -138,7 +138,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#050505] p-3 rounded-sm border border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/[0.03] p-3 rounded-2xl border border-white/10">
         <span className="text-xs font-mono text-stone-300 flex items-center gap-2 font-bold">
           <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
           Browse {selectedPile.cards.length} Cards in {selectedPile.name}:
@@ -151,13 +151,13 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
             placeholder="Search card by name or title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#0e0e11] border border-white/15 focus:border-[#c5a059] rounded-sm text-xs text-stone-200 outline-none font-mono"
+            className="w-full pl-9 pr-3 py-2 bg-white/[0.04] border border-white/15 focus:border-[#c5a059] rounded-xl text-xs text-stone-200 outline-none font-mono"
           />
         </div>
       </div>
 
       {/* Cards Grid in Selected Stack */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto p-1 bg-[#050505] rounded-sm border border-white/10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto p-1 bg-white/[0.02] rounded-2xl border border-white/10">
         {filteredCards.map((card, idx) => {
           const isSelected = chosenCard?.id === card.id;
 
@@ -168,10 +168,10 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
                 triggerHaptic(12);
                 onSelectSignificator(card.id);
               }}
-              className={`p-3 rounded-sm border transition cursor-pointer flex flex-col justify-between text-left select-none relative group ${
+              className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between text-left select-none relative group ${
                 isSelected
-                  ? 'bg-[#181510] border-[#c5a059] ring-2 ring-[#c5a059]/60 text-white shadow-xl scale-[1.02]'
-                  : 'bg-[#0e0e11] border-white/10 hover:border-[#c5a059]/60 text-stone-300 hover:bg-[#121116]'
+                  ? 'bg-[#c5a059]/10 border-[#c5a059]/80 ring-1 ring-[#c5a059]/40 text-white shadow-xl scale-[1.02]'
+                  : 'bg-white/[0.03] border-white/10 hover:border-[#c5a059]/60 text-stone-300 hover:bg-white/[0.06]'
               }`}
             >
               {isSelected && (
@@ -201,8 +201,8 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
 
       {/* Bottom Action Control Bar */}
       <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 bg-[#050505] px-4 py-2.5 rounded-sm border border-[#c5a059]/30 text-xs font-mono w-full sm:w-auto">
-          <div className="w-6 h-9 rounded-xs border border-[#c5a059]/60 overflow-hidden shrink-0">
+        <div className="flex items-center gap-3 bg-white/[0.04] px-4 py-2.5 rounded-2xl border border-[#c5a059]/25 text-xs font-mono w-full sm:w-auto">
+          <div className="w-6 h-9 rounded-md border border-[#c5a059]/60 overflow-hidden shrink-0">
             <img src={THOTH_CARD_BACK_IMAGE} alt="Back" className="w-full h-full object-cover" />
           </div>
           <div>
@@ -216,7 +216,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={onChangePileStep}
-            className="px-4 py-3 bg-[#050505] hover:bg-black text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-sm flex items-center justify-center gap-1.5 transition"
+            className="px-4 py-3 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
@@ -226,7 +226,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
               triggerHaptic([20, 30, 20]);
               onRunSpread(chosenCard?.id || selectedPile.cards[0]?.id || '');
             }}
-            className="flex-1 sm:flex-initial px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-sm shadow-2xl flex items-center justify-center gap-2 transition transform active:scale-95"
+            className="flex-1 sm:flex-initial px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-xl shadow-[0_0_32px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 transition transform active:scale-95"
           >
             <Play className="w-4 h-4 fill-current" />
             <span>Begin Continuous Loop Count</span>
