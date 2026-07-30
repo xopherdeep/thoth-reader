@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { FourPilesCut, TetragrammatonPile, cutDeckWithCustomRatios } from "../utils/thothSpread";
-import { THOTH_CARD_BACK_IMAGE } from "../utils/cardImageUrls";
+import { THOTH_CARD_BACK_IMAGE, getThothCardImageUrl } from "../utils/cardImageUrls";
 import { ThothCard } from "../types";
 import { THOTH_DECK } from "../data/thothCards";
 import {
@@ -18,7 +18,9 @@ import {
   Scissors,
   Zap,
   Crosshair,
-  Compass
+  Compass,
+  Eye,
+  Crown
 } from "lucide-react";
 
 interface FourElementalPilesViewProps {
@@ -30,6 +32,7 @@ interface FourElementalPilesViewProps {
   onPerformCutAgain: () => void;
   deck?: ThothCard[];
   onCustomCutPiles?: (result: FourPilesCut) => void;
+  selectedSignificatorId?: string | null;
 }
 
 export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
@@ -40,7 +43,8 @@ export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
   onBackToShuffle,
   onPerformCutAgain,
   deck = THOTH_DECK,
-  onCustomCutPiles
+  onCustomCutPiles,
+  selectedSignificatorId
 }) => {
   // Minigame Cut Stages: 1 = Main Cut (2 Stacks), 2 = Cut Stack A (Yod/Vau), 3 = Cut Stack B (Heh/Heh Final), 'done' = Final Piles
   const [cutStage, setCutStage] = useState<1 | 2 | 3 | "done">(1);
@@ -559,8 +563,6 @@ export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
                   <span className="bg-black/60 px-3 py-1 rounded-md border border-white/10">
                     Stack B: <strong className="text-[#c5a059]">{stackBCount} Cards ({pileBPercent}%)</strong>
                   </span>
-                </div>
-              </div>
                   <span className="text-stone-600">•</span>
                   <span>
                     Accuracy: <strong className="text-amber-400">{accuracyScore}%</strong>
@@ -629,130 +631,193 @@ export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
       )}
 
       {/* FINAL 4 ELEMENTAL PILES SELECTION VIEW (STAGE 'DONE') */}
-      {cutStage === "done" && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-7"
-        >
-          {/* 4 COLUMNS ACROSS GRID OF 4 STYLIZED PHYSICAL DECK STACKS */}
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full"
-            dir="rtl"
+      {cutStage === "done" && (() => {
+        const significatorCard = deck.find((c) => c.id === selectedSignificatorId);
+        const pileWithSignificator = fourPilesCut.piles.find((p) =>
+          p.cards.some((c) => c.id === selectedSignificatorId)
+        );
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-7"
           >
-            {fourPilesCut.piles.map((pile) => {
-              const visual = getPileVisualConfig(pile.id);
-              const isSelected = selectedPileId === pile.id;
-              const cardCount = pile.cards.length;
-
-              // Stack offset depth layers based on actual card count
-              const stackDepthLayers = Math.min(5, Math.max(2, Math.floor(cardCount / 4)));
-
-              return (
-                <div
-                  key={pile.id}
-                  className="relative group text-left"
-                  dir="ltr"
-                >
-                  {/* Physical 3D Stack Offset Edge Layers representing exact card pile height */}
-                  {Array.from({ length: stackDepthLayers }).map((_, idx) => (
-                    <div
-                      key={`stack-depth-${idx}`}
-                      className="absolute inset-0 rounded-2xl border border-white/10 bg-[#08080c] pointer-events-none shadow-md transition-transform duration-300"
-                      style={{
-                        transform: `translate(${(idx + 1) * 2.5}px, ${(idx + 1) * 2.5}px)`,
-                        zIndex: 5 - idx
-                      }}
-                    />
-                  ))}
-
-                  {/* Main Full-Size Tarot Card Container */}
-                  <motion.div
-                    whileHover={{ y: -4 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      triggerHaptic([15, 25, 15]);
-                      onSelectPile(pile.id);
-                    }}
-                    className={`relative z-10 aspect-[1/1.62] p-5 sm:p-6 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between select-none overflow-hidden shadow-2xl ${
-                      isSelected
-                        ? `${visual.glow} ring-2 ring-[#c5a059] shadow-[0_0_45px_rgba(197,160,89,0.35)]`
-                        : "border-white/20 hover:border-white/45 opacity-95 hover:opacity-100"
-                    }`}
-                  >
-                    {/* Full-Color Thoth Card Back Background Image (STATIC, NON-MOVING) */}
+            {/* LIBER T SIGNIFICATOR ALIGNMENT REVEAL BANNER */}
+            {significatorCard && pileWithSignificator && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-gradient-to-r from-[#0c0a06] via-[#1a1409] to-[#0c0a06] border border-[#c5a059]/50 rounded-2xl p-4 sm:p-5 shadow-[0_0_40px_rgba(197,160,89,0.2)] flex flex-col sm:flex-row items-center justify-between gap-4"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-20 rounded-lg border border-[#c5a059] overflow-hidden shrink-0 shadow-[0_0_15px_rgba(197,160,89,0.4)]">
                     <img
-                      src={THOTH_CARD_BACK_IMAGE}
-                      alt="Thoth Card Back Background"
-                      className="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none"
+                      src={getThothCardImageUrl(significatorCard)}
+                      alt={significatorCard.name}
+                      className="w-full h-full object-cover"
                     />
+                  </div>
+                  <div className="space-y-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#c5a059] animate-pulse" />
+                      <span className="text-xs font-mono text-[#c5a059] font-bold uppercase tracking-[0.15em]">
+                        Is this your card? Is this your pile?
+                      </span>
+                    </div>
+                    <h4 className="atu-font text-base sm:text-lg font-bold text-stone-100">
+                      Significator <span className="text-[#c5a059]">{significatorCard.name}</span> Discovered in <span className="text-[#c5a059]">Book of {pileWithSignificator.element.toUpperCase()}</span>!
+                    </h4>
+                    <p className="text-xs text-stone-400 font-sans">
+                      Liber T Alignment Confirmed: Your bookmark card landed in stack {pileWithSignificator.letter} ({pileWithSignificator.hebrewName}), attuning your inquiry directly with Divine Source.
+                    </p>
+                  </div>
+                </div>
 
-                    {/* Gradient Shadow Wash for Crisp Text Contrast */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/45 to-black/95 pointer-events-none" />
+                <button
+                  onClick={() => onSelectPile(pileWithSignificator.id)}
+                  className="px-4 py-2.5 bg-[#c5a059]/20 hover:bg-[#c5a059]/35 text-[#c5a059] border border-[#c5a059]/60 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition shrink-0 flex items-center gap-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Select Aligned Book</span>
+                </button>
+              </motion.div>
+            )}
 
-                    {/* Bottom-Up Elemental Color Gradient Overlay */}
-                    <div
-                      className={`absolute inset-0 bg-gradient-to-t ${visual.bottomGradient} pointer-events-none`}
-                    />
+            {/* 4 COLUMNS ACROSS GRID OF 4 STYLIZED PHYSICAL DECK STACKS */}
+            <div
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 w-full"
+              dir="rtl"
+            >
+              {fourPilesCut.piles.map((pile) => {
+                const visual = getPileVisualConfig(pile.id);
+                const isSelected = selectedPileId === pile.id;
+                const cardCount = pile.cards.length;
+                const hasSignificator = Boolean(
+                  selectedSignificatorId &&
+                    pile.cards.some((c) => c.id === selectedSignificatorId)
+                );
 
-                    {/* TOP HEADER ROW */}
-                    <div className="relative z-10 flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-black/70 border border-[#c5a059]/40 flex items-center justify-center shadow-inner backdrop-blur-md">
-                          <span className="text-base font-serif font-bold text-[#c5a059]">
-                            {pile.letter}
+                // Stack offset depth layers based on actual card count
+                const stackDepthLayers = Math.min(5, Math.max(2, Math.floor(cardCount / 4)));
+
+                return (
+                  <div
+                    key={pile.id}
+                    className="relative group text-left"
+                    dir="ltr"
+                  >
+                    {/* Physical 3D Stack Offset Edge Layers representing exact card pile height */}
+                    {Array.from({ length: stackDepthLayers }).map((_, idx) => (
+                      <div
+                        key={`stack-depth-${idx}`}
+                        className="absolute inset-0 rounded-2xl border border-white/10 bg-[#08080c] pointer-events-none shadow-md transition-transform duration-300"
+                        style={{
+                          transform: `translate(${(idx + 1) * 2.5}px, ${(idx + 1) * 2.5}px)`,
+                          zIndex: 5 - idx
+                        }}
+                      />
+                    ))}
+
+                    {/* Main Full-Size Tarot Card Container */}
+                    <motion.div
+                      whileHover={{ y: -4 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        triggerHaptic([15, 25, 15]);
+                        onSelectPile(pile.id);
+                      }}
+                      className={`relative z-10 aspect-[1/1.62] p-5 sm:p-6 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between select-none overflow-hidden shadow-2xl ${
+                        isSelected
+                          ? `${visual.glow} ring-2 ring-[#c5a059] shadow-[0_0_45px_rgba(197,160,89,0.35)]`
+                          : hasSignificator
+                          ? "border-[#c5a059]/70 ring-1 ring-[#c5a059]/40 opacity-100 shadow-[0_0_25px_rgba(197,160,89,0.2)]"
+                          : "border-white/20 hover:border-white/45 opacity-95 hover:opacity-100"
+                      }`}
+                    >
+                      {/* Full-Color Thoth Card Back Background Image (STATIC, NON-MOVING) */}
+                      <img
+                        src={THOTH_CARD_BACK_IMAGE}
+                        alt="Thoth Card Back Background"
+                        className="absolute inset-0 w-full h-full object-cover opacity-85 pointer-events-none"
+                      />
+
+                      {/* Gradient Shadow Wash for Crisp Text Contrast */}
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/45 to-black/95 pointer-events-none" />
+
+                      {/* Bottom-Up Elemental Color Gradient Overlay */}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-t ${visual.bottomGradient} pointer-events-none`}
+                      />
+
+                      {/* TOP HEADER ROW */}
+                      <div className="relative z-10 flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-black/70 border border-[#c5a059]/40 flex items-center justify-center shadow-inner backdrop-blur-md">
+                            <span className="text-base font-serif font-bold text-[#c5a059]">
+                              {pile.letter}
+                            </span>
+                          </div>
+                          <span className="atu-font text-xs font-bold text-stone-200 tracking-wider">
+                            {visual.hebrewLabel}
                           </span>
                         </div>
-                        <span className="atu-font text-xs font-bold text-stone-200 tracking-wider">
-                          {visual.hebrewLabel}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* CENTER NAKED ELEMENTAL ICON & SPACIOUS TITLE LAYOUT (NO CONTAINER BOX) */}
-                    <div className="relative z-10 py-4 my-auto flex flex-col items-center justify-center text-center space-y-1.5 select-none">
-                      {/* Naked Icon glowing directly against card back background */}
-                      <div className="p-2 transition-transform duration-300 group-hover:scale-110">
-                        <div className="scale-[1.85] filter drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
-                          {visual.icon}
-                        </div>
                       </div>
 
-                      {/* Element Archetype Name */}
-                      <h3 className="atu-font text-xl sm:text-2xl font-extrabold tracking-[0.15em] uppercase text-stone-100 drop-shadow-md">
-                        BOOK OF {pile.element.toUpperCase()}
-                      </h3>
-                    </div>
-
-                    {/* QUESTION TYPES DESCRIPTION */}
-                    <p className="relative z-10 text-[11px] text-stone-200 leading-relaxed font-sans text-center line-clamp-2 px-1 mb-2 drop-shadow">
-                      {pile.description}
-                    </p>
-
-                    {/* BOTTOM CARD COUNT & SELECTION INDICATOR BAR */}
-                    <div className="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-[11px] font-mono">
-                      <span
-                        className={`text-[9px] font-mono px-2.5 py-1 rounded-full border ${visual.bgBadge} font-bold shadow-md backdrop-blur-md`}
-                      >
-                        {cardCount} CARDS
-                      </span>
-                      {isSelected ? (
-                        <div className="flex items-center gap-1 text-[#c5a059] font-bold shrink-0 bg-black/75 px-2.5 py-1 rounded-full border border-[#c5a059]/50 shadow-md">
-                          <CheckCircle2 className="w-3.5 h-3.5 fill-[#c5a059]/20 text-[#c5a059]" />{" "}
-                          Selected
+                      {/* SIGNIFICATOR BADGE IF CARDS CONTAINS SIGNIFICATOR */}
+                      {hasSignificator && (
+                        <div className="relative z-10 my-1 px-2.5 py-1 bg-[#c5a059] text-stone-950 text-[10px] font-mono font-bold uppercase rounded-full flex items-center justify-between shadow-[0_0_12px_rgba(197,160,89,0.6)]">
+                          <span className="flex items-center gap-1 truncate">
+                            <Sparkles className="w-3 h-3 shrink-0" /> Significator Inside
+                          </span>
+                          <Crown className="w-3 h-3 shrink-0" />
                         </div>
-                      ) : (
-                        <span className="text-stone-300 group-hover:text-stone-100 transition-colors shrink-0 text-[10px]">
-                          Select →
-                        </span>
                       )}
-                    </div>
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
+
+                      {/* CENTER NAKED ELEMENTAL ICON & SPACIOUS TITLE LAYOUT (NO CONTAINER BOX) */}
+                      <div className="relative z-10 py-4 my-auto flex flex-col items-center justify-center text-center space-y-1.5 select-none">
+                        {/* Naked Icon glowing directly against card back background */}
+                        <div className="p-2 transition-transform duration-300 group-hover:scale-110">
+                          <div className="scale-[1.85] filter drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+                            {visual.icon}
+                          </div>
+                        </div>
+
+                        {/* Element Archetype Name */}
+                        <h3 className="atu-font text-xl sm:text-2xl font-extrabold tracking-[0.15em] uppercase text-stone-100 drop-shadow-md">
+                          BOOK OF {pile.element.toUpperCase()}
+                        </h3>
+                      </div>
+
+                      {/* QUESTION TYPES DESCRIPTION */}
+                      <p className="relative z-10 text-[11px] text-stone-200 leading-relaxed font-sans text-center line-clamp-2 px-1 mb-2 drop-shadow">
+                        {pile.description}
+                      </p>
+
+                      {/* BOTTOM CARD COUNT & SELECTION INDICATOR BAR */}
+                      <div className="relative z-10 pt-3 border-t border-white/20 flex items-center justify-between text-[11px] font-mono">
+                        <span
+                          className={`text-[9px] font-mono px-2.5 py-1 rounded-full border ${visual.bgBadge} font-bold shadow-md backdrop-blur-md`}
+                        >
+                          {cardCount} CARDS
+                        </span>
+                        {isSelected ? (
+                          <div className="flex items-center gap-1 text-[#c5a059] font-bold shrink-0 bg-black/75 px-2.5 py-1 rounded-full border border-[#c5a059]/50 shadow-md">
+                            <CheckCircle2 className="w-3.5 h-3.5 fill-[#c5a059]/20 text-[#c5a059]" />{" "}
+                            Selected
+                          </div>
+                        ) : (
+                          <span className="text-stone-300 group-hover:text-stone-100 transition-colors shrink-0 text-[10px]">
+                            Select →
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  </div>
+                );
+              })}
+            </div>
 
           {/* BOTTOM ACTION BAR */}
           <div className="pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -786,7 +851,8 @@ export const FourElementalPilesView: React.FC<FourElementalPilesViewProps> = ({
             </button>
           </div>
         </motion.div>
-      )}
-    </div>
-  );
+      );
+    })()}
+  </div>
+);
 };

@@ -65,7 +65,6 @@ export function useThothReadingStudio(options: UseThothReadingStudioOptions = {}
     setCurrentSpread(null);
     setFourPilesCut(null);
     setSelectedPileId(null);
-    setSelectedSignificatorId(null);
   }, []);
 
   // Perform Four Piles Cut

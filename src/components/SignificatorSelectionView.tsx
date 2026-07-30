@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ThothCard } from '../types';
 import { TetragrammatonPile } from '../utils/thothSpread';
-import { THOTH_CARD_BACK_IMAGE } from '../utils/cardImageUrls';
+import { THOTH_CARD_BACK_IMAGE, getThothCardImageUrl } from '../utils/cardImageUrls';
 import {
   Flame,
   Droplets,
@@ -130,7 +130,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
 
           <button
             onClick={onChangePileStep}
-            className="px-3 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/15 text-xs font-mono uppercase tracking-wider rounded-xl transition flex items-center gap-1.5"
+            className="px-3 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/15 text-xs font-mono uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Change Book
           </button>
@@ -156,8 +156,8 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
         </div>
       </div>
 
-      {/* Cards Grid in Selected Stack */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto p-1 bg-white/[0.02] rounded-2xl border border-white/10">
+      {/* Cards Grid in Selected Stack - 2:3 Ratio Card Aspect View */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 max-h-[460px] overflow-y-auto p-2 bg-white/[0.02] rounded-2xl border border-white/10 scrollbar-thin scrollbar-thumb-[#c5a059]/30">
         {filteredCards.map((card, idx) => {
           const isSelected = chosenCard?.id === card.id;
 
@@ -168,31 +168,48 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
                 triggerHaptic(12);
                 onSelectSignificator(card.id);
               }}
-              className={`p-3 rounded-xl border transition cursor-pointer flex flex-col justify-between text-left select-none relative group ${
+              className={`group relative aspect-[2/3] rounded-xl border cursor-pointer select-none transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-lg ${
                 isSelected
-                  ? 'bg-[#c5a059]/10 border-[#c5a059]/80 ring-1 ring-[#c5a059]/40 text-white shadow-xl scale-[1.02]'
-                  : 'bg-white/[0.03] border-white/10 hover:border-[#c5a059]/60 text-stone-300 hover:bg-white/[0.06]'
+                  ? 'border-[#c5a059] ring-2 ring-[#c5a059] shadow-[0_0_30px_rgba(197,160,89,0.8)] scale-[1.03] z-10'
+                  : 'border-white/15 hover:border-[#c5a059]/70 hover:scale-[1.02] bg-[#050508]'
               }`}
             >
+              {/* Card Back for non-selected cards, Card Front image for selected Significator */}
+              <img
+                src={isSelected ? getThothCardImageUrl(card) : THOTH_CARD_BACK_IMAGE}
+                alt={card.name}
+                className={`w-full h-full object-cover transition-all duration-300 ${
+                  isSelected ? 'brightness-110 group-hover:scale-105' : 'brightness-90 group-hover:brightness-110'
+                }`}
+              />
+
+              {/* Index Badge (Top Left) */}
+              <div className="absolute top-0 left-0 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-br-lg border-b border-r border-[#c5a059]/40 text-[10px] font-mono text-[#c5a059] font-bold z-10">
+                #{idx + 1}
+              </div>
+
+              {/* Numerology Count Badge (Top Right) */}
+              <div className="absolute top-0 right-0 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-bl-lg border-b border-l border-[#c5a059]/40 text-[10px] font-mono text-[#c5a059] font-bold z-10">
+                +{card.numerologyCount}
+              </div>
+
+              {/* Selected Significator Highlight Overlay */}
               {isSelected && (
-                <div className="absolute top-1.5 right-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#c5a059] fill-[#c5a059]/20" />
+                <div className="absolute inset-0 bg-[#c5a059]/15 flex items-center justify-center pointer-events-none z-10">
+                  <div className="w-8 h-8 rounded-full bg-[#c5a059] text-stone-950 flex items-center justify-center shadow-lg">
+                    <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                  </div>
                 </div>
               )}
 
-              <div>
-                <div className="flex items-center justify-between text-[10px] font-mono text-stone-400 mb-1 pr-4">
-                  <span>#{idx + 1}</span>
-                  <span className="text-[#c5a059] font-bold">+{card.numerologyCount}</span>
-                </div>
-
-                <div className="atu-font text-xs font-bold text-stone-100 group-hover:text-[#c5a059] transition-colors line-clamp-2">
+              {/* Card Label Bottom Overlay */}
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/80 to-transparent p-2 pt-6 text-center z-10">
+                <div className={`atu-font text-[11px] font-bold truncate ${isSelected ? 'text-[#c5a059]' : 'text-stone-200 group-hover:text-[#c5a059]'}`}>
                   {card.name}
                 </div>
-              </div>
-
-              <div className="text-[9px] text-[#c5a059]/80 font-sans italic truncate mt-2 border-t border-white/10 pt-1">
-                {card.thothTitle}
+                <div className="text-[9px] font-serif text-stone-400 italic truncate">
+                  {card.thothTitle}
+                </div>
               </div>
             </div>
           );
@@ -201,14 +218,18 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
 
       {/* Bottom Action Control Bar */}
       <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3 bg-white/[0.04] px-4 py-2.5 rounded-2xl border border-[#c5a059]/25 text-xs font-mono w-full sm:w-auto">
-          <div className="w-6 h-9 rounded-md border border-[#c5a059]/60 overflow-hidden shrink-0">
-            <img src={THOTH_CARD_BACK_IMAGE} alt="Back" className="w-full h-full object-cover" />
+        <div className="flex items-center gap-3 bg-white/[0.04] px-4 py-2.5 rounded-2xl border border-[#c5a059]/25 text-xs font-mono w-full sm:w-auto shadow-md">
+          <div className="w-7 h-10 rounded-md border border-[#c5a059]/60 overflow-hidden shrink-0 shadow-sm">
+            <img
+              src={chosenCard ? getThothCardImageUrl(chosenCard) : THOTH_CARD_BACK_IMAGE}
+              alt="Active Significator"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <span className="text-[10px] text-stone-400 uppercase block">Active Significator:</span>
             <strong className="text-[#c5a059] atu-font text-sm font-bold block">
-              {chosenCard ? chosenCard.name : 'First Card'}
+              {chosenCard ? chosenCard.name : 'Select a Card'}
             </strong>
           </div>
         </div>
@@ -216,7 +237,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={onChangePileStep}
-            className="px-4 py-3 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition"
+            className="px-4 py-3 bg-white/[0.04] hover:bg-white/[0.08] text-stone-300 border border-white/10 text-xs font-mono uppercase tracking-wider rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
@@ -226,7 +247,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
               triggerHaptic([20, 30, 20]);
               onRunSpread(chosenCard?.id || selectedPile.cards[0]?.id || '');
             }}
-            className="flex-1 sm:flex-initial px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-xl shadow-[0_0_32px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 transition transform active:scale-95"
+            className="flex-1 sm:flex-initial px-8 py-3.5 bg-gradient-to-r from-[#c5a059] via-amber-400 to-[#c5a059] hover:brightness-110 text-stone-950 font-bold text-xs font-mono uppercase tracking-widest rounded-xl shadow-[0_0_32px_rgba(197,160,89,0.4)] flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer"
           >
             <Play className="w-4 h-4 fill-current" />
             <span>Begin Continuous Loop Count</span>

@@ -224,14 +224,14 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
             targetZ = pileIndex * 0.04 + 0.15;
             targetRotX = 0.2;
             targetRotY = isLeft ? -0.22 : 0.22;
-            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetRotZ = Math.PI / 2 + reversalAngle;
             targetBend = 0;
           } else if (style === 'overhand') {
             targetX = isLeft ? -1.8 : 1.8;
             targetY = isLeft ? -0.3 : 0.3;
             targetZ = pileIndex * 0.05 + 0.15;
             targetRotY = isLeft ? -0.25 : 0.25;
-            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetRotZ = Math.PI / 2 + reversalAngle;
             targetBend = 0;
           } else {
             const washAngle = (id / CARD_COUNT) * Math.PI * 2;
@@ -248,14 +248,14 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
             targetZ = targetIndex * 0.045;
             targetRotX = 0.15;
             targetRotY = (isLeft ? -1 : 1) * Math.max(0, 0.2 - targetIndex * 0.006);
-            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetRotZ = Math.PI / 2 + reversalAngle;
             targetBend = 0;
           } else if (style === 'overhand') {
             targetX = isLeft ? -0.8 : 0.8;
             targetY = -targetIndex * 0.02;
             targetZ = targetIndex * 0.04;
             targetRotY = isLeft ? -0.08 : 0.08;
-            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetRotZ = Math.PI / 2 + reversalAngle;
             targetBend = 0;
           } else {
             targetX = Math.sin(id) * 0.6;
@@ -273,7 +273,7 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
             targetZ = 0.8 + archZ + targetIndex * 0.025;
             targetRotX = archNorm * -0.45;
             targetRotY = (isLeft ? -1 : 1) * (0.15 - targetIndex * 0.004);
-            targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+            targetRotZ = Math.PI / 2 + reversalAngle;
             targetBend = 0.95;
           } else {
             targetX = 0;
@@ -292,7 +292,7 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
               targetZ = targetIndex * 0.04;
               targetRotX = 0;
               targetRotY = 0;
-              targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+              targetRotZ = Math.PI / 2 + reversalAngle;
               targetBend = 0;
             } else {
               const archNorm = Math.sin((targetIndex / (CARD_COUNT - 1)) * Math.PI);
@@ -302,7 +302,7 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
               targetZ = 0.8 + archZ + targetIndex * 0.025;
               targetRotX = archNorm * -0.45;
               targetRotY = (isLeft ? -1 : 1) * (0.15 - targetIndex * 0.004);
-              targetRotZ = (isLeft ? Math.PI / 2 : -Math.PI / 2) + reversalAngle;
+              targetRotZ = Math.PI / 2 + reversalAngle;
               targetBend = 0.95;
             }
           } else {
