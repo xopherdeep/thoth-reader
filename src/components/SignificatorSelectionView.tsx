@@ -112,18 +112,18 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
             Select Starting Significator in <span className="text-[#c5a059]">{selectedPile.name}</span>
           </h3>
           <p className="text-xs text-stone-300 mt-1 max-w-xl">
-            The counting process will originate from your chosen card and loop continuously through all {selectedPile.cards.length} cards in this bounded elemental stack.
+            The counting process will originate from your chosen card and loop continuously through all {selectedPile.cards.length} cards in this bounded elemental book.
           </p>
         </div>
 
-        {/* Selected Stack Pill & Change Button */}
+        {/* Selected Book Pill & Change Button */}
         <div className="flex items-center gap-3">
           <div className={`px-3.5 py-2 rounded-sm border ${badge.border} ${badge.bg} flex items-center gap-2.5 shadow-lg`}>
             {badge.icon}
             <div>
-              <span className="text-[10px] font-mono text-stone-400 block uppercase">Selected Stack</span>
+              <span className="text-[10px] font-mono text-stone-400 block uppercase">Selected Book</span>
               <span className={`text-xs font-mono font-bold ${badge.color}`}>
-                {selectedPile.letter} • {selectedPile.cards.length} Cards
+                {selectedPile.element} Book • {selectedPile.cards.length} Cards
               </span>
             </div>
           </div>
@@ -132,7 +132,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
             onClick={onChangePileStep}
             className="px-3 py-2 bg-[#050505] hover:bg-black text-stone-300 border border-white/15 text-xs font-mono uppercase tracking-wider rounded-sm transition flex items-center gap-1.5"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Change Stack
+            <ArrowLeft className="w-3.5 h-3.5" /> Change Book
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export const SignificatorSelectionView: React.FC<SignificatorSelectionViewProps>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#050505] p-3 rounded-sm border border-white/10">
         <span className="text-xs font-mono text-stone-300 flex items-center gap-2 font-bold">
           <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" />
-          Browse {selectedPile.cards.length} Cards in {selectedPile.name} Stack:
+          Browse {selectedPile.cards.length} Cards in {selectedPile.name}:
         </span>
 
         <div className="relative w-full sm:w-72">

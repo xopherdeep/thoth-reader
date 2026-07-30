@@ -23,6 +23,91 @@ interface DeckShuffleVisualProps {
 }
 
 type ShuffleStyle = 'riffle' | 'overhand' | 'wash';
+type ShufflePhase = 'idle' | 'split' | 'riffle' | 'bridge' | 'waterfall' | 'square';
+
+interface BentCardBackProps {
+  bendAmount: number; // -1 to 1 (-1 = convex bridge arch, +1 = concave thumb lift)
+}
+
+const CARD_COUNT = 32;
+const SLICE_COUNT = 8;
+const SLICE_INDICES = Array.from({ length: SLICE_COUNT }, (_, i) => i);
+
+const BentCardBack: React.FC<BentCardBackProps> = ({ bendAmount }) => {
+  const absBend = Math.abs(bendAmount);
+
+  if (absBend < 0.02) {
+    return (
+      <div className="w-32 h-48 sm:w-36 sm:h-56 rounded-sm bg-[#0e0e11] border border-[#c5a059]/70 shadow-xl overflow-hidden select-none relative transition-all duration-200">
+        <img
+          src={THOTH_CARD_BACK_IMAGE}
+          alt="Thoth Card Back"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover rounded-xs"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        <div className="absolute inset-0 border border-[#c5a059]/30 rounded-xs pointer-events-none" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="w-32 h-48 sm:w-36 sm:h-56 rounded-sm relative select-none shadow-xl border border-[#c5a059]/60"
+      style={{ transformStyle: 'preserve-3d' }}
+    >
+      {SLICE_INDICES.map((sliceIndex) => {
+        const progress = (sliceIndex + 0.5) / SLICE_COUNT;
+        const archSin = Math.sin(progress * Math.PI);
+        const archCos = Math.cos(progress * Math.PI);
+
+        // Convex arch: middle rises UP (+Z towards viewer), slice edges tilt downward
+        const direction = bendAmount >= 0 ? 1 : -1;
+        const rotateX = -archCos * bendAmount * 32;
+        const translateZ = archSin * absBend * 28 * direction;
+
+        const sliceHeightPercent = 100 / SLICE_COUNT + 0.5; // +0.5% overlap prevents slice gap seams
+        const sliceTopPercent = (sliceIndex / SLICE_COUNT) * 100;
+
+        return (
+          <div
+            key={sliceIndex}
+            className="absolute left-0 right-0 overflow-hidden bg-[#0e0e11]"
+            style={{
+              top: `${sliceTopPercent}%`,
+              height: `${sliceHeightPercent}%`,
+              transformStyle: 'preserve-3d',
+              transform: `translateZ(${translateZ}px) rotateX(${rotateX}deg)`,
+              backfaceVisibility: 'hidden',
+              willChange: 'transform',
+            }}
+          >
+            <div
+              className="absolute left-0 right-0 w-full"
+              style={{
+                top: `-${sliceIndex * 100}%`,
+                height: `${SLICE_COUNT * 100}%`,
+              }}
+            >
+              <img
+                src={THOTH_CARD_BACK_IMAGE}
+                alt="Thoth Card Back Slice"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 border border-[#c5a059]/30 pointer-events-none" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
   shuffleCount,
@@ -30,17 +115,19 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
   onReset,
   onNextStep,
 }) => {
-  const [shufflePhase, setShufflePhase] = useState<'idle' | 'split' | 'riffle' | 'bridge' | 'square'>('idle');
+  const [shufflePhase, setShufflePhase] = useState<ShufflePhase>('idle');
   const [shuffleStyle, setShuffleStyle] = useState<ShuffleStyle>('riffle');
-  
+
   const [shuffleState, setShuffleState] = useState<{
-    stack: number[],
-    leftPile: number[],
-    rightPile: number[]
+    stack: number[];
+    leftPile: number[];
+    rightPile: number[];
+    reversedCards: Record<number, boolean>;
   }>({
-    stack: Array.from({length: 12}, (_, i) => i),
-    leftPile: Array.from({length: 6}, (_, i) => i),
-    rightPile: Array.from({length: 6}, (_, i) => i + 6),
+    stack: Array.from({ length: CARD_COUNT }, (_, i) => i),
+    leftPile: Array.from({ length: CARD_COUNT / 2 }, (_, i) => i),
+    rightPile: Array.from({ length: CARD_COUNT / 2 }, (_, i) => i + CARD_COUNT / 2),
+    reversedCards: {},
   });
 
   const triggerHaptic = (pattern: number | number[] = 15) => {
@@ -55,7 +142,6 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
 
   const isAnimating = shufflePhase !== 'idle';
 
-  // Generate 30+ rapid micro-impulses for realistic card-by-card riffle interlace
   const generatePokerRiffleHaptics = () => {
     return Array.from({ length: 38 }, () => [5, 8]).flat();
   };
@@ -64,7 +150,6 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
     return Array.from({ length: 16 }, () => [10, 15]).flat();
   };
 
-  // Handle Shuffle Trigger
   const handleShuffleClick = (styleOverride?: ShuffleStyle) => {
     if (isAnimating) return;
 
@@ -73,7 +158,6 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
 
     onShuffle();
 
-    // Compute realistic shuffle interleaving
     const currentStack = shuffleState.stack;
     let leftPile: number[] = [];
     let rightPile: number[] = [];
@@ -83,11 +167,10 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
       const splitPoint = Math.floor(currentStack.length / 2) + (Math.random() > 0.5 ? 1 : -1);
       leftPile = currentStack.slice(0, splitPoint);
       rightPile = currentStack.slice(splitPoint);
-      
+
       let l = [...leftPile];
       let r = [...rightPile];
-      
-      // Real riffle leaves top card dependent on which pile finishes last
+
       while (l.length > 0 || r.length > 0) {
         if (l.length > 0 && r.length > 0) {
           if (Math.random() > 0.5) nextStack.push(l.shift()!);
@@ -99,102 +182,114 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
         }
       }
     } else if (activeStyle === 'overhand') {
-      // Overhand: Chunks from top dropped to the bottom
       leftPile = currentStack.filter((_, i) => i % 2 === 0);
       rightPile = currentStack.filter((_, i) => i % 2 !== 0);
-      
+
       let remaining = [...currentStack];
       while (remaining.length > 0) {
         const chunkSize = Math.min(remaining.length, Math.floor(Math.random() * 3) + 2);
         const chunk = remaining.splice(0, chunkSize);
-        nextStack.unshift(...chunk); // Drop chunks on top of the new pile (which reverses chunk order macroscopically)
+        nextStack.unshift(...chunk);
       }
     } else {
-      // Wash: Chaotic spread
       leftPile = currentStack.filter(() => Math.random() > 0.5);
-      rightPile = currentStack.filter(x => !leftPile.includes(x));
+      rightPile = currentStack.filter((x) => !leftPile.includes(x));
       nextStack = [...currentStack].sort(() => Math.random() - 0.5);
+    }
+
+    // Randomize 180° tarot card reversals during shuffle
+    const newReversedCards = { ...shuffleState.reversedCards };
+    const flipRightPile = Math.random() > 0.45;
+    if (flipRightPile) {
+      rightPile.forEach((cardId) => {
+        newReversedCards[cardId] = !newReversedCards[cardId];
+      });
+    } else {
+      leftPile.forEach((cardId) => {
+        if (Math.random() > 0.35) {
+          newReversedCards[cardId] = !newReversedCards[cardId];
+        }
+      });
     }
 
     setShuffleState({
       stack: nextStack,
       leftPile,
-      rightPile
+      rightPile,
+      reversedCards: newReversedCards,
     });
 
-    // Phase 1: Eyeball Split (0ms - 450ms)
-    if (activeStyle === 'riffle') {
-      triggerHaptic([20, 25, 15, 30]);
-    } else if (activeStyle === 'overhand') {
-      triggerHaptic([35, 40, 30]);
-    } else {
-      triggerHaptic([12, 18, 12, 18, 12]);
-    }
-
+    // Phase 1: Split (0ms - 500ms)
+    triggerHaptic(activeStyle === 'riffle' ? [20, 25, 15, 30] : [35, 40, 30]);
     setShufflePhase('split');
 
-    // Phase 2: Riffle Card-by-Card Interlace (450ms - 1100ms)
+    // Phase 2: Riffle Card Interlace (500ms - 1200ms)
     setTimeout(() => {
       setShufflePhase('riffle');
       if (activeStyle === 'riffle') {
         triggerHaptic(generatePokerRiffleHaptics());
-      } else if (activeStyle === 'overhand') {
-        triggerHaptic([35, 45, 40, 45, 45, 45, 35, 40]);
       } else {
-        triggerHaptic([8, 12, 8, 12, 8, 12, 8, 12, 8, 12, 8, 12, 8, 12, 8, 12, 8, 12]);
+        triggerHaptic([12, 18, 12, 18, 12]);
       }
-    }, 450);
+    }, 500);
 
-    // Phase 3: Casino Bridge Waterfall Cascade (1100ms - 1700ms)
+    // Phase 3: Pressing Halves into 3D Bridge Arch (1200ms - 1700ms)
     setTimeout(() => {
       if (activeStyle === 'riffle') {
         setShufflePhase('bridge');
-        triggerHaptic(generateBridgeWaterfallHaptics());
+        triggerHaptic([25, 30, 20]);
       } else {
         setShufflePhase('square');
         triggerHaptic([25, 35, 25]);
       }
-    }, 1150);
+    }, 1200);
 
-    // Phase 4: Square Deck Edges (1700ms - 2100ms)
+    // Phase 3b: Waterfall Release (1700ms - 2450ms) - Cards drop bottom-to-top underneath the arch to form pile!
+    setTimeout(() => {
+      if (activeStyle === 'riffle') {
+        setShufflePhase('waterfall');
+        triggerHaptic(generateBridgeWaterfallHaptics());
+      }
+    }, 1700);
+
+    // Phase 4: Square Deck (2450ms - 2850ms)
     setTimeout(() => {
       setShufflePhase('square');
       triggerHaptic([30, 20, 45]);
-    }, 1700);
+    }, 2450);
 
-    // Phase 5: Deck Rested (2100ms)
+    // Phase 5: Complete & Idle (2850ms)
     setTimeout(() => {
       triggerHaptic(25);
       setShufflePhase('idle');
-    }, 2150);
+    }, 2850);
   };
 
-  const renderCardBack = (index: number) => (
-    <div
-      key={index}
-      className="w-36 h-56 sm:w-44 sm:h-64 rounded-sm bg-[#0e0e11] border border-[#c5a059]/70 shadow-2xl overflow-hidden select-none relative transition-all duration-300 group"
-    >
-      <img
-        src={THOTH_CARD_BACK_IMAGE}
-        alt="Thoth Card Back"
-        referrerPolicy="no-referrer"
-        className="w-full h-full object-cover rounded-xs"
-        onError={(e) => {
-          e.currentTarget.style.display = 'none';
-        }}
-      />
-      <div className="absolute inset-0 border border-[#c5a059]/30 rounded-xs pointer-events-none" />
-    </div>
-  );
+  const cardIndices = Array.from({ length: CARD_COUNT }, (_, i) => i);
 
-  const cardIndices = Array.from({ length: 12 }, (_, i) => i);
+  const getPhaseDescription = () => {
+    switch (shufflePhase) {
+      case 'split':
+        return 'Dealer Split (Fire & Air / Water & Earth)';
+      case 'riffle':
+        return 'Card-by-Card 15% Tip Interlace';
+      case 'bridge':
+        return 'Pressing Halves into 3D Bridge Arch';
+      case 'waterfall':
+        return 'Waterfall Cascade Release (Cards Dropping Underneath Arch)';
+      case 'square':
+        return 'Squaring Deck Edges';
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="bg-[#050505] border border-[#c5a059]/40 p-5 sm:p-8 rounded-sm text-center space-y-6 relative overflow-hidden shadow-2xl">
+    <div className="bg-[#050505] border border-[#c5a059]/40 p-5 sm:p-8 rounded-sm text-center space-y-6 relative shadow-2xl">
       <div className="absolute inset-0 bg-gradient-to-b from-[#c5a059]/10 via-transparent to-transparent pointer-events-none" />
 
       <div className="space-y-2 relative z-10">
-        <span className="text-[10px] sm:text-xs font-mono text-[#c5a059] uppercase tracking-[0.2em] font-bold block flex items-center justify-center gap-1.5">
+        <span className="text-[10px] sm:text-xs font-mono text-[#c5a059] uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-[#c5a059]" /> Ritual Stage I: Randomize & Charge
         </span>
         <h3 className="atu-font text-2xl sm:text-3xl font-bold text-[#c5a059] tracking-wide">
@@ -255,116 +350,215 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
         </button>
       </div>
 
-      <div className="relative h-72 sm:h-80 flex items-center justify-center my-4 select-none overflow-hidden rounded-sm bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#121016] via-[#08080a] to-[#030304] border border-[#c5a059]/20 p-6 shadow-2xl">
+      {/* 3D Stage Viewport - Expanded dimensions & zero clipping */}
+      <div
+        className="relative h-[440px] sm:h-[500px] flex items-center justify-center my-2 select-none rounded-sm bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#14121a] via-[#09090c] to-[#030304] border border-[#c5a059]/30 p-4 shadow-2xl overflow-visible"
+        style={{ perspective: '1100px', perspectiveOrigin: '50% 38%' }}
+      >
+        <AnimatePresence>
+          {isAnimating && getPhaseDescription() && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 text-xs font-mono text-[#c5a059] bg-[#0e0e11]/95 border border-[#c5a059]/50 px-4 py-1.5 rounded-sm shadow-2xl z-50 tracking-wider uppercase font-semibold flex items-center gap-2"
+            >
+              <Sparkles className="w-3 h-3 text-amber-400 animate-spin" />
+              <span>{getPhaseDescription()}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {(shufflePhase === 'split' || shufflePhase === 'riffle') && (
             <>
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                className="absolute left-4 sm:left-12 top-6 text-xs font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1.5 rounded-sm shadow-xl"
+                className="absolute left-3 sm:left-10 top-12 text-[11px] font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1 rounded-sm shadow-xl z-40 hidden sm:block"
               >
-                Left Stack (~39 Cards)
+                Fire & Air Books (~39 Cards)
               </motion.div>
               <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                className="absolute right-4 sm:right-12 top-6 text-xs font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1.5 rounded-sm shadow-xl"
+                className="absolute right-3 sm:right-10 top-12 text-[11px] font-mono text-[#c5a059] bg-[#0e0e11]/90 border border-[#c5a059]/40 px-3 py-1 rounded-sm shadow-xl z-40 hidden sm:block"
               >
-                Right Stack (~39 Cards)
+                Water & Earth Books (~39 Cards)
               </motion.div>
             </>
           )}
         </AnimatePresence>
 
-        <div className="relative w-36 h-56 sm:w-44 sm:h-64 flex items-center justify-center">
-          <div className="absolute w-36 h-56 sm:w-44 sm:h-64 bg-black/90 rounded-sm blur-xl translate-y-6" />
+        {/* 3D Tabletop Stage Frame */}
+        <div
+          className="relative w-32 h-48 sm:w-36 sm:h-56 flex items-center justify-center scale-90 sm:scale-95"
+          style={{
+            transformStyle: 'preserve-3d',
+            transform: 'rotateX(34deg) rotateZ(-6deg)',
+          }}
+        >
+          {/* Tabletop Surface Shadow */}
+          <div className="absolute w-52 h-72 sm:w-64 sm:h-80 bg-black/90 rounded-full blur-2xl translate-y-12 pointer-events-none" />
 
           {cardIndices.map((id) => {
             const isLeft = shuffleState.leftPile.includes(id);
             const targetIndex = shuffleState.stack.indexOf(id);
-            const pileIndex = isLeft 
-              ? shuffleState.leftPile.indexOf(id) 
+            const pileIndex = isLeft
+              ? shuffleState.leftPile.indexOf(id)
               : shuffleState.rightPile.indexOf(id);
 
-            // Z-index reflects the calculated new physical stack order
-            // This ensures cards interleave properly without visual popping
-            const zIndex = 30 - targetIndex;
+            // Stacking order in 3D: Ensure strict Z separation to prevent depth z-fighting
+            const stackingZ = targetIndex * 2.2;
+            const visualZIndex = 50 + targetIndex;
 
             let targetX = 0;
-            let targetY = -targetIndex * 1.5;
-            let targetRotate = 0;
+            let targetY = 0;
+            let targetZ = stackingZ;
+            let targetRotateX = 0;
+            let targetRotateY = 0;
+            let targetRotateZ = 0;
             let targetScale = 1;
+            let bendAmount = 0;
 
             if (shufflePhase === 'split') {
               if (shuffleStyle === 'riffle') {
-                targetX = isLeft ? -140 : 140;
-                targetY = -pileIndex * 4;
-                targetRotate = isLeft ? -12 : 12;
+                // Horizontal Dealer split: Turn cards 90deg so short horizontal ends face center
+                targetX = isLeft ? -120 : 120;
+                targetY = 0;
+                targetZ = pileIndex * 2.2 + 10;
+                targetRotateX = 12;
+                targetRotateY = isLeft ? -15 : 15;
+                targetRotateZ = isLeft ? 90 : -90; // Turned landscape so short horizontal ends face center!
+                bendAmount = 0; // Flat cards during split
               } else if (shuffleStyle === 'overhand') {
-                targetX = isLeft ? -85 : 85;
-                targetY = -pileIndex * 8;
-                targetRotate = isLeft ? -15 : 15;
+                targetX = isLeft ? -95 : 95;
+                targetY = isLeft ? -15 : 15;
+                targetZ = pileIndex * 2.5 + 10;
+                targetRotateY = isLeft ? -16 : 16;
+                targetRotateZ = isLeft ? 85 : -85;
+                bendAmount = 0;
               } else {
-                targetX = Math.sin(id * 1.3) * 160;
-                targetY = Math.cos(id * 1.5) * 60;
-                targetRotate = ((id * 30) % 180) - 90;
+                // Wash split
+                const washAngle = (id / CARD_COUNT) * Math.PI * 2;
+                targetX = Math.cos(washAngle) * 125;
+                targetY = Math.sin(washAngle) * 55;
+                targetZ = id * 1.8;
+                targetRotateZ = ((id * 30) % 180) - 90;
+                bendAmount = 0;
               }
             } else if (shufflePhase === 'riffle') {
               if (shuffleStyle === 'riffle') {
-                // Cards move inwards and interlace
-                targetX = (isLeft ? -1 : 1) * Math.max(0, 45 - targetIndex * 4);
-                targetY = -targetIndex * 3;
-                targetRotate = (isLeft ? -1 : 1) * (12 - targetIndex);
+                // Short-edge 15% tip interlace: Short horizontal ends overlap by only ~15% at center line
+                targetX = (isLeft ? -1 : 1) * (62 + (targetIndex % 3) * 1.5);
+                targetY = (targetIndex % 2 === 0 ? -3 : 3);
+                targetZ = targetIndex * 2.4;
+                targetRotateX = 10;
+                targetRotateY = (isLeft ? -1 : 1) * Math.max(0, 12 - targetIndex * 0.4);
+                targetRotateZ = isLeft ? 90 : -90; // Short ends facing center with 15% edge overlap
+                bendAmount = 0; // Flat cards during 15% tip interlace
               } else if (shuffleStyle === 'overhand') {
-                targetX = isLeft ? -30 : 30;
-                targetY = -targetIndex * 4;
-                targetRotate = isLeft ? -5 : 5;
+                targetX = isLeft ? -40 : 40;
+                targetY = -targetIndex * 1.2;
+                targetZ = targetIndex * 2.2;
+                targetRotateY = isLeft ? -5 : 5;
+                targetRotateZ = isLeft ? 85 : -85;
+                bendAmount = 0;
               } else {
-                targetX = Math.sin(id) * 40;
-                targetY = -targetIndex * 3;
-                targetRotate = Math.cos(id) * 14;
+                targetX = Math.sin(id) * 30;
+                targetY = Math.cos(id) * 18;
+                targetZ = targetIndex * 2.2;
+                targetRotateZ = Math.cos(id) * 10;
+                bendAmount = 0;
               }
             } else if (shufflePhase === 'bridge') {
               if (shuffleStyle === 'riffle') {
-                // Bridge waterfall arch - cards spring up then fall
-                const archY = Math.sin((targetIndex / 11) * Math.PI) * 45;
-                targetX = (isLeft ? -1 : 1) * (12 - targetIndex);
-                targetY = -archY - targetIndex * 2;
-                targetRotate = (isLeft ? -1 : 1) * (8 - targetIndex * 0.5);
-                targetScale = 1.05;
+                // Casino Bridge Arch: Hands compress piles inward, arching cards UP in 3D
+                const archNormalized = Math.sin((targetIndex / (CARD_COUNT - 1)) * Math.PI);
+                const archZ = archNormalized * 85;
+                targetX = (isLeft ? -1 : 1) * Math.max(6, 18 - (CARD_COUNT - 1 - targetIndex) * 0.4);
+                targetY = 0;
+                targetZ = 40 + archZ + targetIndex * 1.5;
+                targetRotateX = archNormalized * -32;
+                targetRotateY = (isLeft ? -1 : 1) * (6 - targetIndex * 0.2);
+                targetRotateZ = isLeft ? 90 : -90;
+                targetScale = 1.04;
+                bendAmount = 0.95; // Convex bridge arch UP in mid-air
               } else {
                 targetX = 0;
-                targetY = -targetIndex * 1.5;
+                targetY = 0;
+                targetZ = targetIndex * 2.2;
+                bendAmount = 0;
+              }
+            } else if (shufflePhase === 'waterfall') {
+              if (shuffleStyle === 'riffle') {
+                // Waterfall Cascade Release: Bottom cards release FIRST, dropping straight down
+                // UNDERNEATH the arch into a single neat stack on the table surface!
+                targetX = 0;
+                targetY = 0;
+                targetZ = targetIndex * 2.2;
+                targetRotateX = 0;
+                targetRotateY = 0;
+                targetRotateZ = isLeft ? 90 : -90;
+                targetScale = 1.0;
+                bendAmount = 0; // Flattens as it lands on the stack underneath!
+              } else {
+                targetX = 0;
+                targetY = 0;
+                targetZ = targetIndex * 2.2;
+                bendAmount = 0;
               }
             } else if (shufflePhase === 'square') {
               targetX = 0;
-              targetY = -targetIndex * 1.5;
-              targetRotate = 0;
-              targetScale = 1.04;
+              targetY = 0;
+              targetZ = targetIndex * 2.2;
+              targetRotateX = 0;
+              targetRotateY = 0;
+              targetRotateZ = 0;
+              targetScale = 1.01;
+              bendAmount = 0;
+            }
+
+            // Apply 180° reversal rotation if card was turned upside down during shuffle
+            const isCardReversed = !!shuffleState.reversedCards[id];
+            if (isCardReversed) {
+              targetRotateZ += 180;
             }
 
             return (
               <motion.div
                 key={id}
-                className="absolute inset-0"
-                style={{ zIndex }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                style={{
+                  zIndex: visualZIndex,
+                  transformStyle: 'preserve-3d',
+                  backfaceVisibility: 'hidden',
+                }}
                 animate={{
                   x: targetX,
                   y: targetY,
-                  rotate: targetRotate,
+                  z: targetZ,
+                  rotateX: targetRotateX,
+                  rotateY: targetRotateY,
+                  rotateZ: targetRotateZ,
                   scale: targetScale,
                 }}
                 transition={{
                   type: 'spring',
-                  stiffness: 240,
-                  damping: 22,
-                  delay: isAnimating ? (shufflePhase === 'bridge' ? (11 - targetIndex) * 0.03 : targetIndex * 0.02) : 0,
+                  stiffness: 280,
+                  damping: 26,
+                  delay: isAnimating
+                    ? shufflePhase === 'waterfall'
+                      ? targetIndex * 0.016 // Bottom cards release FIRST, dropping to pile underneath!
+                      : shufflePhase === 'bridge'
+                      ? (CARD_COUNT - 1 - targetIndex) * 0.008
+                      : targetIndex * 0.012
+                    : 0,
                 }}
               >
-                {renderCardBack(id)}
+                <BentCardBack bendAmount={bendAmount} />
               </motion.div>
             );
           })}
@@ -372,14 +566,15 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
           {isAnimating && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 0.7, scale: 1.5 }}
+              animate={{ opacity: 0.75, scale: 1.4 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#c5a059]/25 rounded-full blur-3xl pointer-events-none"
+              className="absolute inset-0 bg-[#c5a059]/20 rounded-full blur-3xl pointer-events-none"
             />
           )}
         </div>
       </div>
 
+      {/* Footer Controls */}
       <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-3">
           <div className="bg-[#0e0e11] border border-[#c5a059]/40 px-3.5 py-2 rounded-sm flex items-center gap-2 text-xs font-mono text-[#c5a059]">
@@ -394,6 +589,7 @@ export const DeckShuffleVisual: React.FC<DeckShuffleVisualProps> = ({
           <button
             onClick={() => {
               triggerHaptic(15);
+              setShuffleState((prev) => ({ ...prev, reversedCards: {} }));
               onReset();
             }}
             disabled={isAnimating}

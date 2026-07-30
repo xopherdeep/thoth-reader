@@ -1,10 +1,10 @@
-import { ThothCard, SpreadStep } from '../types';
-import { THOTH_DECK } from '../data/thothCards';
+import { ThothCard, SpreadStep } from "../types";
+import { THOTH_DECK } from "../data/thothCards";
 
 export interface TetragrammatonPile {
-  id: 'yod' | 'heh' | 'vau' | 'heh_final';
+  id: "yod" | "heh" | "vau" | "heh_final";
   letter: string; // י, ה, ו, ה
-  element: 'Fire' | 'Water' | 'Air' | 'Earth';
+  element: "Fire" | "Water" | "Air" | "Earth";
   name: string;
   description: string;
   cards: ThothCard[];
@@ -25,12 +25,12 @@ export interface CountingSpreadResult {
 }
 
 /**
-  * Cuts a 78-card deck twice into 4 distinct elemental/Tetragrammaton piles:
-  * 1. Yod (י) - Fire (Will, Energy, Ambition)
-  * 2. Heh (ה) - Water (Emotion, Intuition, Love)
-  * 3. Vau (ו) - Air (Mind, Thought, Intellect)
-  * 4. Heh Final (ה) - Earth (Physical, Wealth, Reality)
-  */
+ * Cuts a 78-card deck twice into 4 distinct elemental/Tetragrammaton piles:
+ * 1. Yod (י) - Fire (Will, Energy, Ambition)
+ * 2. Heh (ה) - Water (Emotion, Intuition, Love)
+ * 3. Vau (ו) - Air (Mind, Thought, Intellect)
+ * 4. Heh Final (ה) - Earth (Physical, Wealth, Reality)
+ */
 export function cutDeckIntoFourPiles(deck: ThothCard[] = THOTH_DECK): FourPilesCut {
   const total = deck.length;
   // Guarantee a minimum of 15 cards per pile (4 x 15 = 60 minimum cards allocated)
@@ -57,51 +57,127 @@ export function cutDeckIntoFourPiles(deck: ThothCard[] = THOTH_DECK): FourPilesC
 
   const piles: TetragrammatonPile[] = [
     {
-      id: 'yod',
-      letter: 'י',
-      element: 'Fire',
-      name: 'Yod (Fire / Will)',
-      description: 'Questions of passion, spiritual ambition, divine energy, and creative force.',
-      cards: pile1Cards,
+      id: "yod",
+      letter: "י",
+      element: "Fire",
+      name: "Book of Fire (Will)",
+      description: "Passion, Spirit, Conflict.",
+      cards: pile1Cards
     },
     {
-      id: 'heh',
-      letter: 'ה',
-      element: 'Water',
-      name: 'Heh (Water / Feeling)',
-      description: 'Questions of relationships, emotional depth, intuition, and love.',
-      cards: pile2Cards,
+      id: "heh",
+      letter: "ה",
+      element: "Water",
+      name: "Book of Water (Feeling)",
+      description: "Emotions, Relationships, Intuition.",
+      cards: pile2Cards
     },
     {
-      id: 'vau',
-      letter: 'ו',
-      element: 'Air',
-      name: 'Vau (Air / Intellect)',
-      description: 'Questions of strategy, conflict, mental clarity, decisions, and communication.',
-      cards: pile3Cards,
+      id: "vau",
+      letter: "ו",
+      element: "Air",
+      name: "Book of Air (Intellect)",
+      description: "Intellect, Career, Mentality.",
+      cards: pile3Cards
     },
     {
-      id: 'heh_final',
-      letter: 'ה',
-      element: 'Earth',
-      name: 'Heh Final (Earth / Material)',
-      description: 'Questions of practical realities, career, health, finances, and physical manifestation.',
-      cards: pile4Cards,
-    },
+      id: "heh_final",
+      letter: "ה",
+      element: "Earth",
+      name: "Book of Earth (Material)",
+      description: "Physical, Material, Monetary.",
+      cards: pile4Cards
+    }
   ];
 
   return {
     piles,
-    assembledDeck: deck,
+    assembledDeck: deck
   };
 }
 
 /**
-  * Executes the Golden Dawn Thoth Numerological Counting Spread loop.
-  * @param startCardIndex Index in deck array to start from
-  * @param deck The 78-card deck array
-  * @param selectedPile Optional pile selected during the 4-pile cut ritual
-  */
+ * Cuts a 78-card deck into 4 piles based on 3 interactive cut ratios (each bounded between 0.30 and 0.70):
+ * 1. Ratio 1: Cuts the main deck into Stack A (Yod+Vau) and Stack B (Heh+Heh Final).
+ * 2. Ratio 2: Cuts Stack A into Yod (Fire) and Vau (Air).
+ * 3. Ratio 3: Cuts Stack B into Heh (Water) and Heh Final (Earth).
+ */
+export function cutDeckWithCustomRatios(
+  deck: ThothCard[] = THOTH_DECK,
+  ratio1: number = 0.5,
+  ratio2: number = 0.5,
+  ratio3: number = 0.5
+): FourPilesCut {
+  const total = deck.length;
+
+  // Clamp ratio to guaranteed 30% to 70% threshold
+  const clamp = (val: number) => Math.max(0.3, Math.min(0.7, val));
+  const r1 = clamp(ratio1);
+  const r2 = clamp(ratio2);
+  const r3 = clamp(ratio3);
+
+  // First cut: Main deck -> Stack A & Stack B
+  const c1 = Math.max(15, Math.min(total - 30, Math.round(total * r1)));
+  const stackA = deck.slice(0, c1);
+  const stackB = deck.slice(c1);
+
+  // Second cut: Stack A -> Yod (Fire) & Vau (Air)
+  const cA = Math.max(6, Math.min(stackA.length - 6, Math.round(stackA.length * r2)));
+  const pileYodCards = stackA.slice(0, cA);
+  const pileVauCards = stackA.slice(cA);
+
+  // Third cut: Stack B -> Heh (Water) & Heh Final (Earth)
+  const cB = Math.max(6, Math.min(stackB.length - 6, Math.round(stackB.length * r3)));
+  const pileHehCards = stackB.slice(0, cB);
+  const pileHehFinalCards = stackB.slice(cB);
+
+  const piles: TetragrammatonPile[] = [
+    {
+      id: "yod",
+      letter: "י",
+      element: "Fire",
+      name: "Book of Fire (Will)",
+      description: "Passion, Spirit, Conflict.",
+      cards: pileYodCards
+    },
+    {
+      id: "heh",
+      letter: "ה",
+      element: "Water",
+      name: "Book of Water (Feeling)",
+      description: "Emotions, Relationships, Intuition.",
+      cards: pileHehCards
+    },
+    {
+      id: "vau",
+      letter: "ו",
+      element: "Air",
+      name: "Book of Air (Intellect)",
+      description: "Intellect, Career, Mentality.",
+      cards: pileVauCards
+    },
+    {
+      id: "heh_final",
+      letter: "ה",
+      element: "Earth",
+      name: "Book of Earth (Material)",
+      description: "Physical, Material, Monetary.",
+      cards: pileHehFinalCards
+    }
+  ];
+
+  return {
+    piles,
+    assembledDeck: deck
+  };
+}
+
+/**
+ * Executes the Golden Dawn Thoth Numerological Counting Spread loop.
+ * @param startCardIndex Index in deck array to start from
+ * @param deck The 78-card deck array
+ * @param selectedPile Optional pile selected during the 4-pile cut ritual
+ */
 export function calculateThothCountingSpread(
   startCardIndex: number,
   deck: ThothCard[] = THOTH_DECK,
@@ -111,10 +187,11 @@ export function calculateThothCountingSpread(
   const workingDeck = selectedPile && selectedPile.cards.length > 0 ? selectedPile.cards : deck;
 
   if (!workingDeck || workingDeck.length === 0) {
-    throw new Error('Working pile or deck must contain at least 1 card');
+    throw new Error("Working pile or deck must contain at least 1 card");
   }
 
-  const validStartIndex = (startCardIndex % workingDeck.length + workingDeck.length) % workingDeck.length;
+  const validStartIndex =
+    ((startCardIndex % workingDeck.length) + workingDeck.length) % workingDeck.length;
   const initialCard = workingDeck[validStartIndex];
 
   const pulledCards: ThothCard[] = [initialCard];
@@ -146,7 +223,7 @@ export function calculateThothCountingSpread(
       count,
       toCard: nextCard,
       toIndex: nextIndex,
-      isLoopTerminal: isTerminal,
+      isLoopTerminal: isTerminal
     };
 
     steps.push(stepInfo);
@@ -168,13 +245,13 @@ export function calculateThothCountingSpread(
     steps,
     terminalCard,
     deckOrder: workingDeck,
-    selectedPile,
+    selectedPile
   };
 }
 
 /**
-  * Shuffles a copy of the Thoth deck using Fisher-Yates shuffle algorithm.
-  */
+ * Shuffles a copy of the Thoth deck using Fisher-Yates shuffle algorithm.
+ */
 export function shuffleDeck(deck: ThothCard[] = THOTH_DECK): ThothCard[] {
   const array = [...deck];
   for (let i = array.length - 1; i > 0; i--) {
