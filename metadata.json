@@ -1,0 +1,8 @@
+{
+  "name": "Thoth Tarot Fortune Teller",
+  "description": "Book of Thoth Tarot companion app with complete esoteric compendium, custom Thoth numerological counting spread engine, AI narrative synthesizer, and QR code reading sharing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
