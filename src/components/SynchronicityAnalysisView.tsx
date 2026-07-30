@@ -14,6 +14,8 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
+  Trophy,
+  Activity,
 } from 'lucide-react';
 
 interface SynchronicityAnalysisViewProps {
@@ -32,35 +34,53 @@ export const SynchronicityAnalysisView: React.FC<SynchronicityAnalysisViewProps>
 
   return (
     <div className="bg-[#0e0e11] border border-[#c5a059]/40 rounded-sm p-5 sm:p-6 shadow-2xl space-y-5 relative overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[#c5a059] text-xs font-mono uppercase tracking-[0.2em]">
-            <Zap className="w-4 h-4 text-[#c5a059] animate-pulse" /> Proof of Non-Random Synchronicity
+      {/* Gamified Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div className="space-y-1.5 flex-1">
+          <div className="flex items-center gap-2 text-[#c5a059] text-xs font-mono uppercase tracking-[0.2em] font-bold">
+            <Trophy className="w-4 h-4 text-[#c5a059] animate-pulse" /> 
+            <span>{analysis.patterns.length} Synchronicity Badges Unlocked</span>
           </div>
-          <h2 className="atu-font text-xl font-bold text-[#c5a059] tracking-wider">
-            Card Set & Elemental Combination Matrix
+          <h2 className="atu-font text-2xl font-bold text-stone-100 tracking-wider">
+            Esoteric Achievement Board
           </h2>
+          <p className="text-xs text-stone-400 font-mono flex items-center gap-2">
+            <Activity className="w-3.5 h-3.5" /> Transmuting Randomness into Mathematical Order
+          </p>
         </div>
 
-        {/* Resonance Score Badge */}
-        <div className="flex items-center gap-3">
-          <div className="bg-[#050505] border border-[#c5a059]/50 px-3.5 py-1.5 rounded-sm flex items-center gap-2 shadow-inner">
-            <Sparkles className="w-4 h-4 text-[#c5a059]" />
-            <div>
+        {/* Global Rarity & Score Badges */}
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {analysis.highestRarity && (
+            <div className="bg-[#050505] border border-fuchsia-500/50 px-3 py-1.5 rounded-sm flex items-center gap-2 shadow-[0_0_15px_rgba(217,70,239,0.15)]">
+              <Sparkles className="w-4 h-4 text-fuchsia-400" />
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] font-mono text-stone-400 uppercase block tracking-widest leading-none">
+                  Highest Rarity
+                </span>
+                <span className="text-sm font-mono font-bold bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-fuchsia-500 to-indigo-400">
+                  {analysis.highestRarity}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-[#050505] border border-[#c5a059]/50 px-3 py-1.5 rounded-sm flex items-center gap-2 shadow-inner">
+            <Zap className="w-4 h-4 text-[#c5a059]" />
+            <div className="flex flex-col text-right">
               <span className="text-[9px] font-mono text-stone-400 uppercase block tracking-widest leading-none">
-                Synchronicity Score
+                Resonance Score
               </span>
               <span className="text-sm font-mono font-bold text-[#c5a059]">
-                {analysis.resonanceScore}% Non-Random
+                {analysis.resonanceScore}%
               </span>
             </div>
           </div>
 
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-2 bg-[#050505] hover:bg-black border border-white/10 text-stone-300 rounded-sm text-xs transition"
-            title={expanded ? 'Collapse Matrix' : 'Expand Matrix'}
+            className="p-2.5 bg-[#050505] hover:bg-black border border-white/10 text-stone-300 rounded-sm text-xs transition"
+            title={expanded ? 'Collapse Achievements' : 'Expand Achievements'}
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -68,7 +88,7 @@ export const SynchronicityAnalysisView: React.FC<SynchronicityAnalysisViewProps>
       </div>
 
       {/* Summary Quote */}
-      <div className="bg-[#050505] border-l-3 border-[#c5a059] p-3.5 rounded-r-sm text-xs text-stone-200 font-serif italic">
+      <div className="bg-[#050505] border-l-3 border-[#c5a059] p-3.5 rounded-r-sm text-sm text-stone-200 font-serif italic shadow-inner">
         "{analysis.summaryQuote}"
       </div>
 
@@ -119,56 +139,71 @@ export const SynchronicityAnalysisView: React.FC<SynchronicityAnalysisViewProps>
 
       {/* Expanded Pattern Details */}
       {expanded && (
-        <div className="space-y-4 pt-2 border-t border-white/10 animate-fade-in">
+        <div className="space-y-5 pt-2 border-t border-white/10 animate-fade-in">
+          
+          <div className="flex items-center justify-between text-[10px] font-mono text-[#c5a059] uppercase tracking-[0.2em] font-bold">
+            <span>Unlocked Synchronicity Badges ({analysis.patterns.length})</span>
+            <span className="text-fuchsia-400">Cumulative Rarity: {analysis.cumulativeOddsText}</span>
+          </div>
+
           {/* Active Detected Patterns */}
           {analysis.patterns.length > 0 ? (
-            <div className="space-y-3">
-              <span className="text-[10px] font-mono text-[#c5a059] uppercase tracking-[0.2em] font-bold block">
-                Detected Esoteric Combinations & Non-Random Proofs ({analysis.patterns.length})
-              </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analysis.patterns.map((pat) => (
+                <div
+                  key={pat.id}
+                  className={`bg-[#050505] border p-4 rounded-sm space-y-3 transition group relative overflow-hidden ${pat.rarityColor.split(' ').filter(c => c.startsWith('border')).join(' ')} ${pat.rarityColor.split(' ').filter(c => c.startsWith('shadow')).join(' ')}`}
+                >
+                  {/* Subtle Background Glow */}
+                  <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${pat.rarityColor} opacity-5 blur-2xl pointer-events-none group-hover:opacity-10 transition-opacity duration-500`} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {analysis.patterns.map((pat) => (
-                  <div
-                    key={pat.id}
-                    className="bg-[#050505] border border-white/10 hover:border-[#c5a059]/40 p-4 rounded-sm space-y-2.5 transition"
-                  >
-                    <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{pat.icon}</span>
-                        <h4 className="text-xs font-mono font-bold text-[#c5a059] uppercase tracking-wider">
+                  {/* Badge Header Row */}
+                  <div className="flex items-start justify-between gap-2 border-b border-white/10 pb-2 relative z-10">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-sm flex items-center justify-center bg-[#0a0a0c] border border-white/10 shadow-inner text-lg`}>
+                        {pat.icon}
+                      </div>
+                      <div>
+                        <span className={`text-[9px] font-mono font-bold uppercase tracking-widest block mb-0.5 bg-clip-text text-transparent bg-gradient-to-r ${pat.rarityColor.split(' ').filter(c => c.startsWith('from-') || c.startsWith('via-') || c.startsWith('to-')).join(' ')}`}>
+                          [ UNLOCKED: {pat.rarityLabel} ]
+                        </span>
+                        <h4 className="text-xs font-mono font-bold text-stone-200 uppercase tracking-wider">
                           {pat.title}
                         </h4>
                       </div>
-                      <span className="px-2 py-0.5 bg-[#0e0e11] border border-[#c5a059]/30 text-[#c5a059] text-[10px] font-mono rounded-sm">
-                        {pat.badgeLabel}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-stone-300 font-serif leading-relaxed">
-                      {pat.description}
-                    </p>
-
-                    <div className="bg-[#0e0e11] p-2.5 rounded-sm border border-white/5 space-y-1 text-[11px]">
-                      <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block font-bold">
-                        Esoteric Significance:
-                      </span>
-                      <p className="text-stone-300 font-serif">{pat.esotericMeaning}</p>
-                    </div>
-
-                    <div className="bg-[#0e0e11] p-2.5 rounded-sm border border-[#c5a059]/20 space-y-1 text-[11px]">
-                      <span className="text-[10px] font-mono text-[#c5a059] uppercase tracking-widest block font-bold flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-[#c5a059]" /> Proof of Non-Randomness:
-                      </span>
-                      <p className="text-stone-300 font-serif italic">{pat.nonRandomProof}</p>
                     </div>
                   </div>
-                ))}
-              </div>
+
+                  <p className="text-xs text-stone-300 font-serif leading-relaxed relative z-10">
+                    {pat.description}
+                  </p>
+
+                  <div className="bg-[#0e0e11] p-2.5 rounded-sm border border-white/5 space-y-1.5 text-[11px] relative z-10">
+                    <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest block font-bold">
+                      Esoteric Significance:
+                    </span>
+                    <p className="text-stone-300 font-serif">{pat.esotericMeaning}</p>
+                  </div>
+
+                  <div className="bg-[#0e0e11] p-2.5 rounded-sm border border-white/10 space-y-1.5 text-[11px] relative z-10">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-[#c5a059] uppercase tracking-widest font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-[#c5a059]" /> Mathematical Proof:
+                      </span>
+                      <span className="text-[9px] font-mono font-bold text-stone-400 bg-black/40 px-2 py-0.5 rounded-sm border border-white/5">
+                        {pat.probabilityOdds}
+                      </span>
+                    </div>
+                    <p className="text-stone-300 font-serif italic opacity-90">{pat.nonRandomProof}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="bg-[#050505] p-4 rounded-sm border border-white/10 text-xs text-stone-400 font-serif text-center">
-              A balanced, nuanced distribution of individual cards across your counting sequence.
+            <div className="bg-[#050505] p-6 rounded-sm border border-white/10 text-xs text-stone-400 font-serif text-center flex flex-col items-center justify-center space-y-3">
+              <HelpCircle className="w-6 h-6 text-stone-600" />
+              <p>A balanced, nuanced distribution of individual cards across your counting sequence.</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest">No Rare Patterns Detected</p>
             </div>
           )}
 
