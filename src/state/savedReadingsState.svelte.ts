@@ -17,14 +17,16 @@ export class SavedReadingsState {
   savedReadings = $state<ThothReading[]>(loadInitialReadings());
 
   constructor() {
-    $effect(() => {
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(this.savedReadings));
-        } catch (e) {
-          console.error('Failed to persist saved readings:', e);
+    $effect.root(() => {
+      $effect(() => {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(this.savedReadings));
+          } catch (e) {
+            console.error('Failed to persist saved readings:', e);
+          }
         }
-      }
+      });
     });
   }
 

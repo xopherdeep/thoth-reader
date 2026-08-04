@@ -2,7 +2,7 @@
   import type { TetragrammatonPile } from '../utils/thothSpread';
   import SearchInput from './atoms/SearchInput.svelte';
   import TarotCardView from './TarotCardView.svelte';
-  import { Flame, Droplets, Wind, Mountain, Layers, Play, CheckCircle2 } from 'lucide-react';
+  import { Flame, Droplets, Wind, Mountain, Layers, Play, CheckCircle2 } from 'lucide-svelte';
 
   interface Props {
     selectedPile: TetragrammatonPile;

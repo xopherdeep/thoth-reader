@@ -1,24 +1,18 @@
 <script lang="ts">
   import QRCode from 'qrcode';
-  import type { ThothReading, PoeticNarrative } from '../types';
+  import type { ThothReading } from '../types';
   import TarotCardView from './TarotCardView.svelte';
-  import NarrativeSynthesizer from './NarrativeSynthesizer.svelte';
   import SynchronicityAnalysisView from './SynchronicityAnalysisView.svelte';
-  import FullScreenStorybook from './FullScreenStorybook.svelte';
   import {
     QrCode,
-    Share2,
     Download,
     Copy,
     Check,
-    Sparkles,
-    BookOpen,
     Compass,
     Flame,
     Feather,
     ArrowLeft,
     Calendar,
-    Play,
   } from 'lucide-svelte';
 
   interface Props {
@@ -30,9 +24,11 @@
   let { reading, onBackToStudio, isSharedView = false }: Props = $props();
 
   let activeReading = $state<ThothReading>(reading);
+  $effect(() => {
+    activeReading = reading;
+  });
   let qrDataUrl = $state<string>('');
   let copiedLink = $state(false);
-  let isStorybookOpen = $state(false);
 
   let shareableUrl = $derived(`${window.location.origin}${window.location.pathname}?readingId=${reading.id}`);
 
@@ -48,16 +44,6 @@
       .then((url) => (qrDataUrl = url))
       .catch((err) => console.error('QR Code error:', err));
   });
-
-  function handleNarrativeUpdated(narrative: PoeticNarrative) {
-    activeReading = {
-      ...activeReading,
-      poeticNarrative: narrative,
-      aiInterpretation: activeReading.aiInterpretation
-        ? { ...activeReading.aiInterpretation, poeticNarrative: narrative }
-        : activeReading.aiInterpretation,
-    };
-  }
 
   function handleCopyLink() {
     navigator.clipboard.writeText(shareableUrl);
@@ -77,14 +63,6 @@
 </script>
 
 <div class="max-w-4xl mx-auto space-y-6">
-  {#if isStorybookOpen}
-    <FullScreenStorybook
-      reading={activeReading}
-      onClose={() => (isStorybookOpen = false)}
-      onNarrativeUpdated={handleNarrativeUpdated}
-    />
-  {/if}
-
   {#if onBackToStudio}
     <div class="flex items-center justify-between">
       <button
@@ -93,13 +71,6 @@
       >
         <ArrowLeft class="w-4 h-4" />
         <span>Return to Reading Studio</span>
-      </button>
-
-      <button
-        onclick={() => (isStorybookOpen = true)}
-        class="px-4 py-2 bg-gradient-to-r from-[#c5a059] to-[#d4af37] text-stone-950 font-mono font-bold text-xs uppercase tracking-widest rounded-sm shadow-lg hover:brightness-110 transition flex items-center gap-2 cursor-pointer"
-      >
-        <Play class="w-4 h-4 fill-current" /> Launch Visual Storybook
       </button>
     </div>
   {/if}

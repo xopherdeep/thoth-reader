@@ -20,7 +20,7 @@
     Loader2,
     ArrowRight,
     ArrowLeft,
-  } from 'lucide-react';
+  } from 'lucide-svelte';
 
   interface Props {
     onReadingCreated: (reading: ThothReading) => void;

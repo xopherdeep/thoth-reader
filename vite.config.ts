@@ -13,6 +13,10 @@ export default defineConfig(() => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      dedupe: ['svelte'],
+    },
+    optimizeDeps: {
+      exclude: ['lucide-svelte'],
     },
     server: {
       port: 8089,
