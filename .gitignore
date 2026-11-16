@@ -6,3 +6,5 @@ coverage/
 *.log
 .env*
 !.env.example
+# Chemical X local telemetry & audit history
+.chemx/
